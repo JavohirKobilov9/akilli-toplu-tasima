@@ -26,6 +26,8 @@ class _SikayetOlusturSayfasiState
 
   final ApiService _apiService = ApiService();
 
+  String? _hataMesaji;
+
   List<Line> _hatlar = [];
   List<Stop> _duraklar = [];
 
@@ -142,44 +144,16 @@ class _SikayetOlusturSayfasiState
   }
 
   Future<void> _sikayetGonder() async {
+    setState(() {
+      _hataMesaji = null;
+    });
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    if (_secilenHat == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Lütfen bir hat seçin.',
-          ),
-        ),
-      );
-      return;
-    }
-
-    // Eğer hatta durak verisi varsa durak seçimi zorunlu.
-    if (_duraklar.isNotEmpty &&
-        _secilenDurak == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Lütfen bir durak / güzergah noktası seçin.',
-          ),
-        ),
-      );
-      return;
-    }
-
-    // Durak verisi yoksa haritadan konum seçilmeli.
-    if (_duraklar.isEmpty &&
-        _secilenKonum == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Bu güzergah için haritadan konum seçin.',
-          ),
-        ),
-      );
+    if (_secilenHat == null ||
+        _secilenKategori == null) {
       return;
     }
 
@@ -206,23 +180,26 @@ class _SikayetOlusturSayfasiState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Şikayet başarıyla gönderildi.',
+              'Şikayet başarıyla oluşturuldu.',
             ),
           ),
         );
 
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Şikayet gönderilemedi: $e',
-          ),
-        ),
-      );
+      final mesaj = e
+          .toString()
+          .replaceFirst(
+            'Exception: ',
+            '',
+          );
+
+      setState(() {
+        _hataMesaji = mesaj;
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -251,9 +228,11 @@ class _SikayetOlusturSayfasiState
               children: [
                 TextFormField(
                   controller: _baslikController,
-                  decoration: const InputDecoration(
+                  decoration:
+                      const InputDecoration(
                     labelText: 'Başlık',
-                    border: OutlineInputBorder(),
+                    border:
+                        OutlineInputBorder(),
                     prefixIcon:
                         Icon(Icons.title),
                   ),
@@ -270,19 +249,25 @@ class _SikayetOlusturSayfasiState
                 const SizedBox(height: 16),
 
                 DropdownButtonFormField<String>(
-                  value: _secilenKategori,
-                  decoration: const InputDecoration(
+                  initialValue:
+                      _secilenKategori,
+                  decoration:
+                      const InputDecoration(
                     labelText: 'Kategori',
-                    border: OutlineInputBorder(),
-                    prefixIcon:
-                        Icon(Icons.category_outlined),
+                    border:
+                        OutlineInputBorder(),
+                    prefixIcon: Icon(
+                      Icons.category_outlined,
+                    ),
                   ),
                   items: _kategoriler
                       .map(
                         (kategori) =>
-                            DropdownMenuItem(
+                            DropdownMenuItem<
+                                String>(
                           value: kategori,
-                          child: Text(kategori),
+                          child:
+                              Text(kategori),
                         ),
                       )
                       .toList(),
@@ -309,31 +294,36 @@ class _SikayetOlusturSayfasiState
                   )
                 else
                   DropdownButtonFormField<Line>(
-                    value: _secilenHat,
+                    initialValue: _secilenHat,
                     isExpanded: true,
                     decoration:
                         const InputDecoration(
                       labelText: 'Hat',
                       border:
                           OutlineInputBorder(),
-                      prefixIcon:
-                          Icon(Icons.directions_bus),
+                      prefixIcon: Icon(
+                        Icons.directions_bus,
+                      ),
                     ),
                     items: _hatlar
                         .map(
                           (hat) =>
-                              DropdownMenuItem<Line>(
+                              DropdownMenuItem<
+                                  Line>(
                             value: hat,
                             child: Text(
                               '${hat.code} - ${hat.name}',
                               overflow:
-                                  TextOverflow.ellipsis,
+                                  TextOverflow
+                                      .ellipsis,
                             ),
                           ),
                         )
                         .toList(),
                     onChanged: (hat) {
-                      if (hat == null) return;
+                      if (hat == null) {
+                        return;
+                      }
 
                       setState(() {
                         _secilenHat = hat;
@@ -361,8 +351,10 @@ class _SikayetOlusturSayfasiState
                           CircularProgressIndicator(),
                     )
                   else if (_duraklar.isNotEmpty)
-                    DropdownButtonFormField<Stop>(
-                      value: _secilenDurak,
+                    DropdownButtonFormField<
+                        Stop>(
+                      initialValue:
+                          _secilenDurak,
                       isExpanded: true,
                       decoration:
                           const InputDecoration(
@@ -370,37 +362,43 @@ class _SikayetOlusturSayfasiState
                             'Durak / Güzergah Noktası',
                         border:
                             OutlineInputBorder(),
-                        prefixIcon:
-                            Icon(Icons.location_on),
+                        prefixIcon: Icon(
+                          Icons.location_on,
+                        ),
                       ),
                       items: _duraklar
                           .map(
                             (durak) =>
-                                DropdownMenuItem<Stop>(
+                                DropdownMenuItem<
+                                    Stop>(
                               value: durak,
                               child: Text(
                                 durak.name,
-                                overflow: TextOverflow
-                                    .ellipsis,
+                                overflow:
+                                    TextOverflow
+                                        .ellipsis,
                               ),
                             ),
                           )
                           .toList(),
                       onChanged: (value) {
                         setState(() {
-                          _secilenDurak = value;
+                          _secilenDurak =
+                              value;
                         });
                       },
                     )
                   else
                     Container(
                       padding:
-                          const EdgeInsets.all(12),
+                          const EdgeInsets.all(
+                        12,
+                      ),
                       decoration: BoxDecoration(
-                        color: Colors.orange
-                            .withOpacity(0.1),
-                        borderRadius:
-                            BorderRadius.circular(8),
+                      color: Colors.orange.withValues(
+                      alpha: 0.1,
+                     ),
+                      borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
                         'Bu güzergah için durak verisi bulunmuyor. '
@@ -432,16 +430,20 @@ class _SikayetOlusturSayfasiState
                       _aciklamaController,
                   minLines: 4,
                   maxLines: 7,
-                  decoration: const InputDecoration(
+                  decoration:
+                      const InputDecoration(
                     labelText: 'Açıklama',
                     alignLabelWithHint: true,
-                    border: OutlineInputBorder(),
-                    prefixIcon:
-                        Icon(Icons.description),
+                    border:
+                        OutlineInputBorder(),
+                    prefixIcon: Icon(
+                      Icons.description,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null ||
-                        value.trim().length < 10) {
+                        value.trim().length <
+                            10) {
                       return 'Açıklama en az 10 karakter olmalıdır.';
                     }
 
@@ -449,11 +451,64 @@ class _SikayetOlusturSayfasiState
                   },
                 ),
 
+                if (_hataMesaji != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding:
+                        const EdgeInsets.all(
+                      14,
+                    ),
+                    decoration:
+                        BoxDecoration(
+                      color:
+                          Colors.red.shade50,
+                      borderRadius:
+                          BorderRadius
+                              .circular(10),
+                      border: Border.all(
+                        color: Colors
+                            .red.shade300,
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment:
+                          CrossAxisAlignment
+                              .start,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          color: Colors
+                              .red.shade700,
+                        ),
+                        const SizedBox(
+                          width: 10,
+                        ),
+                        Expanded(
+                          child: Text(
+                            _hataMesaji!,
+                            style:
+                                TextStyle(
+                              color: Colors
+                                  .red
+                                  .shade700,
+                              fontWeight:
+                                  FontWeight
+                                      .w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 24),
 
                 SizedBox(
                   height: 52,
-                  child: ElevatedButton.icon(
+                  child:
+                      ElevatedButton.icon(
                     onPressed: _loading
                         ? null
                         : _sikayetGonder,
@@ -466,7 +521,9 @@ class _SikayetOlusturSayfasiState
                               strokeWidth: 2,
                             ),
                           )
-                        : const Icon(Icons.send),
+                        : const Icon(
+                            Icons.send,
+                          ),
                     label: Text(
                       _loading
                           ? 'Gönderiliyor...'
