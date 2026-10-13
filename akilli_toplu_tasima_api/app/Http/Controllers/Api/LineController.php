@@ -4,10 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Line;
+use App\Models\LineSchedule;
 
 class LineController extends Controller
 {
-    // Bütün aktif hatları getirir
+    // Aktif hatları getir
     public function index()
     {
         $lines = Line::where('is_active', true)
@@ -20,7 +21,7 @@ class LineController extends Controller
         ]);
     }
 
-    // Seçilen hatta ait durakları getirir
+    // Seçilen hatta ait durakları getir
     public function stops(Line $line)
     {
         $stops = $line->stops()
@@ -31,6 +32,25 @@ class LineController extends Controller
             'success' => true,
             'line' => $line,
             'data' => $stops,
+        ]);
+    }
+
+    // Seçilen hatta ait sefer saatlerini getir
+    public function schedules(Line $line)
+    {
+        $schedules = LineSchedule::where(
+            'line_id',
+            $line->id
+        )
+            ->orderBy('service_period')
+            ->orderBy('direction')
+            ->orderBy('departure_time')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'line' => $line,
+            'data' => $schedules,
         ]);
     }
 }

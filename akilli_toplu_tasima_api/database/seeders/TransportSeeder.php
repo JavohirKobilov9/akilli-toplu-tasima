@@ -10,136 +10,284 @@ class TransportSeeder extends Seeder
 {
     public function run(): void
     {
-     
-        // -------------------------
-        // DURAKLAR
-        // -------------------------
- 
+        /*
+        |--------------------------------------------------------------------------
+        | BARTIN DURAKLARI
+        |--------------------------------------------------------------------------
+        */
 
-        $kadikoy = Stop::updateOrCreate(
-            ['code' => 'STP001'],
+        $merkezDurak = Stop::updateOrCreate(
+            ['code' => 'BAR001'],
             [
-                'name' => 'Kadıköy',
-                'district' => 'Kadıköy',
-                'latitude' => 40.9909,
-                'longitude' => 29.0233,
+                'name' => 'Merkez Durak',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
                 'is_active' => true,
             ]
         );
 
-        $uskudar = Stop::updateOrCreate(
-            ['code' => 'STP002'],
+        $bartinLisesi = Stop::updateOrCreate(
+            ['code' => 'BAR002'],
             [
-                'name' => 'Üsküdar',
-                'district' => 'Üsküdar',
-                'latitude' => 41.0267,
-                'longitude' => 29.0150,
+                'name' => 'Bartın Lisesi',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
                 'is_active' => true,
             ]
         );
 
-        $altunizade = Stop::updateOrCreate(
-            ['code' => 'STP003'],
+        $yaliMevkii = Stop::updateOrCreate(
+            ['code' => 'BAR003'],
             [
-                'name' => 'Altunizade',
-                'district' => 'Üsküdar',
-                'latitude' => 41.0217,
-                'longitude' => 29.0431,
+                'name' => 'Yalı Mevkii',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
                 'is_active' => true,
             ]
         );
 
-        $zincirlikuyu = Stop::updateOrCreate(
-            ['code' => 'STP004'],
+        $ulusDuragi = Stop::updateOrCreate(
+            ['code' => 'BAR004'],
             [
-                'name' => 'Zincirlikuyu',
-                'district' => 'Şişli',
-                'latitude' => 41.0664,
-                'longitude' => 29.0187,
+                'name' => 'Ulus Durağı',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
                 'is_active' => true,
             ]
         );
 
-        $mecidiyekoy = Stop::updateOrCreate(
-            ['code' => 'STP005'],
+        $disHastanesi = Stop::updateOrCreate(
+            ['code' => 'BAR005'],
             [
-                'name' => 'Mecidiyeköy',
-                'district' => 'Şişli',
-                'latitude' => 41.0670,
-                'longitude' => 28.9920,
+                'name' => 'Diş Hastanesi',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
                 'is_active' => true,
             ]
         );
 
-        $taksim = Stop::updateOrCreate(
-            ['code' => 'STP006'],
+        $karakoy = Stop::updateOrCreate(
+            ['code' => 'BAR006'],
             [
-                'name' => 'Taksim',
-                'district' => 'Beyoğlu',
-                'latitude' => 41.0369,
-                'longitude' => 28.9850,
+                'name' => 'Karaköy',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
                 'is_active' => true,
             ]
         );
 
-        // -------------------------
-        // HATLAR
-        // -------------------------
-
-        $line1 = Line::updateOrCreate(
-            ['code' => '34AS'],
+        $agdaci = Stop::updateOrCreate(
+            ['code' => 'BAR007'],
             [
-                'name' => 'Kadıköy - Zincirlikuyu',
-                'transport_type' => 'Otobüs',
-                'start_point' => 'Kadıköy',
-                'end_point' => 'Zincirlikuyu',
+                'name' => 'Ağdacı',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
                 'is_active' => true,
             ]
         );
 
-        $line2 = Line::updateOrCreate(
-            ['code' => 'M5'],
+        $agdaciKampus = Stop::updateOrCreate(
+            ['code' => 'BAR008'],
             [
-                'name' => 'Üsküdar - Çekmeköy',
-                'transport_type' => 'Metro',
-                'start_point' => 'Üsküdar',
-                'end_point' => 'Çekmeköy',
+                'name' => 'Ağdacı Kampüsü',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
                 'is_active' => true,
             ]
         );
 
-        $line3 = Line::updateOrCreate(
-            ['code' => 'DT1'],
+        $kykYurt = Stop::updateOrCreate(
+            ['code' => 'BAR009'],
             [
-                'name' => 'Taksim - Kadıköy',
-                'transport_type' => 'Otobüs',
-                'start_point' => 'Taksim',
-                'end_point' => 'Kadıköy',
+                'name' => 'KYK Yurt',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
                 'is_active' => true,
             ]
         );
 
-        // -------------------------
-        // HAT - DURAK BAĞLANTILARI
-        // -------------------------
+        $kutlubeyKampus = Stop::updateOrCreate(
+            ['code' => 'BAR010'],
+            [
+                'name' => 'Kutlubey Yazıcılar Kampüsü',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
+                'is_active' => true,
+            ]
+        );
 
-        $line1->stops()->sync([
-            $kadikoy->id => ['stop_order' => 1],
-            $uskudar->id => ['stop_order' => 2],
-            $altunizade->id => ['stop_order' => 3],
-            $zincirlikuyu->id => ['stop_order' => 4],
+        $toki = Stop::updateOrCreate(
+            ['code' => 'BAR011'],
+            [
+                'name' => 'TOKİ - Öğretmenler Sitesi',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
+                'is_active' => true,
+            ]
+        );
+
+        $jandarma = Stop::updateOrCreate(
+            ['code' => 'BAR012'],
+            [
+                'name' => 'Jandarma Komutanlığı',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
+                'is_active' => true,
+            ]
+        );
+
+        $kaynarca = Stop::updateOrCreate(
+            ['code' => 'BAR013'],
+            [
+                'name' => 'Kaynarca',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
+                'is_active' => true,
+            ]
+        );
+
+        $asmaKopru = Stop::updateOrCreate(
+            ['code' => 'BAR014'],
+            [
+                'name' => 'Asma Köprü',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
+                'is_active' => true,
+            ]
+        );
+
+        $golbucagi = Stop::updateOrCreate(
+            ['code' => 'BAR015'],
+            [
+                'name' => 'Gölbucağı Işıklı Kavşağı',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
+                'is_active' => true,
+            ]
+        );
+
+        $catmaca = Stop::updateOrCreate(
+            ['code' => 'BAR016'],
+            [
+                'name' => 'Çatmaca Kavşağı',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
+                'is_active' => true,
+            ]
+        );
+
+        $yeniDevletHastanesi = Stop::updateOrCreate(
+            ['code' => 'BAR017'],
+            [
+                'name' => 'Yeni Devlet Hastanesi',
+                'district' => 'Merkez',
+                'latitude' => null,
+                'longitude' => null,
+                'is_active' => true,
+            ]
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | BARTIN HATLARI
+        |--------------------------------------------------------------------------
+        */
+
+        $disHastanesiHatti = Line::updateOrCreate(
+            ['code' => 'DH'],
+            [
+                'name' => 'Diş Hastanesi',
+                'transport_type' => 'Özel Halk Otobüsü',
+                'start_point' => 'Merkez Durak',
+                'end_point' => 'Diş Hastanesi',
+                'is_active' => true,
+            ]
+        );
+
+        $karakoyAgdaci = Line::updateOrCreate(
+            ['code' => 'KAU'],
+            [
+                'name' => 'Karaköy - Ağdacı Üniversite',
+                'transport_type' => 'Özel Halk Otobüsü',
+                'start_point' => 'Karaköy',
+                'end_point' => 'Ağdacı Kampüsü',
+                'is_active' => true,
+            ]
+        );
+
+        $kampusHatti = Line::updateOrCreate(
+            ['code' => 'AKK'],
+            [
+                'name' => 'Ağdacı Üniversite - KYK Yurt - Kutlubey Yazıcılar Kampüs',
+                'transport_type' => 'Özel Halk Otobüsü',
+                'start_point' => 'Ağdacı Kampüsü',
+                'end_point' => 'Kutlubey Yazıcılar Kampüsü',
+                'is_active' => true,
+            ]
+        );
+
+        $hastaneRing = Line::updateOrCreate(
+            ['code' => 'YDH-R1'],
+            [
+                'name' => 'Kaynarca - TOKİ - Yeni Devlet Hastanesi Ring',
+                'transport_type' => 'Özel Halk Otobüsü',
+                'start_point' => 'TOKİ - Öğretmenler Sitesi',
+                'end_point' => 'Yeni Devlet Hastanesi',
+                'is_active' => true,
+            ]
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | HAT - DURAK İLİŞKİLERİ
+        |--------------------------------------------------------------------------
+        */
+
+        $disHastanesiHatti->stops()->sync([
+            $merkezDurak->id => ['stop_order' => 1],
+            $bartinLisesi->id => ['stop_order' => 2],
+            $yaliMevkii->id => ['stop_order' => 3],
+            $ulusDuragi->id => ['stop_order' => 4],
+            $disHastanesi->id => ['stop_order' => 5],
         ]);
 
-        $line2->stops()->sync([
-            $uskudar->id => ['stop_order' => 1],
-            $altunizade->id => ['stop_order' => 2],
+        $karakoyAgdaci->stops()->sync([
+            $karakoy->id => ['stop_order' => 1],
+            $agdaci->id => ['stop_order' => 2],
+            $agdaciKampus->id => ['stop_order' => 3],
         ]);
 
-        $line3->stops()->sync([
-            $taksim->id => ['stop_order' => 1],
-            $mecidiyekoy->id => ['stop_order' => 2],
-            $zincirlikuyu->id => ['stop_order' => 3],
-            $kadikoy->id => ['stop_order' => 4],
+        $kampusHatti->stops()->sync([
+            $agdaciKampus->id => ['stop_order' => 1],
+            $kykYurt->id => ['stop_order' => 2],
+            $kutlubeyKampus->id => ['stop_order' => 3],
+        ]);
+
+        $hastaneRing->stops()->sync([
+            $toki->id => ['stop_order' => 1],
+            $jandarma->id => ['stop_order' => 2],
+            $kaynarca->id => ['stop_order' => 3],
+            $bartinLisesi->id => ['stop_order' => 4],
+            $asmaKopru->id => ['stop_order' => 5],
+            $golbucagi->id => ['stop_order' => 6],
+            $catmaca->id => ['stop_order' => 7],
+            $yeniDevletHastanesi->id => ['stop_order' => 8],
         ]);
     }
 }

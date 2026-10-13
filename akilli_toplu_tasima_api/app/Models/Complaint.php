@@ -13,6 +13,8 @@ class Complaint extends Model
         'description',
         'line_id',
         'stop_id',
+        'latitude',
+        'longitude',
         'line',
         'stop',
         'status',
@@ -27,4 +29,11 @@ class Complaint extends Model
     {
         return $this->belongsTo(Stop::class);
     }
+
+    public function comments()
+    {
+     return $this->hasMany(ComplaintComment::class);
+    }
+     
+    
 }

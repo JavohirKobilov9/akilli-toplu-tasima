@@ -22,4 +22,10 @@ class Line extends Model
             ->withTimestamps()
             ->orderBy('line_stop.stop_order');
     }
+    
+    public function schedules()
+{
+    return $this->hasMany(LineSchedule::class)
+        ->orderBy('departure_time');
+}
 }

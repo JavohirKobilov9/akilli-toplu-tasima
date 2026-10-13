@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'harita.dart';
+import 'sefer_saatleri.dart';
+import 'topluluk_sikayetleri.dart';
+
 class AnaSayfa extends StatefulWidget {
   const AnaSayfa({super.key});
 
@@ -16,11 +20,17 @@ class _AnaSayfaState extends State<AnaSayfa> {
     });
 
     if (index == 1) {
-      Navigator.pushNamed(context, '/sikayetlerim');
+      Navigator.pushNamed(
+        context,
+        '/sikayetlerim',
+      );
     }
 
     if (index == 2) {
-      Navigator.pushNamed(context, '/profil');
+      Navigator.pushNamed(
+        context,
+        '/profil',
+      );
     }
   }
 
@@ -37,9 +47,14 @@ class _AnaSayfaState extends State<AnaSayfa> {
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.pushNamed(context, '/profil');
+              Navigator.pushNamed(
+                context,
+                '/profil',
+              );
             },
-            icon: const Icon(Icons.person_outline),
+            icon: const Icon(
+              Icons.person_outline,
+            ),
           ),
         ],
       ),
@@ -47,17 +62,20 @@ class _AnaSayfaState extends State<AnaSayfa> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
           children: [
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.indigo,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius:
+                    BorderRadius.circular(24),
               ),
               child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
                   Icon(
                     Icons.directions_bus,
@@ -68,18 +86,22 @@ class _AnaSayfaState extends State<AnaSayfa> {
                   SizedBox(height: 16),
 
                   Text(
-                    'Toplu taşıma deneyimini\nbirlikte iyileştirelim.',
+                    'Toplu taşıma deneyimini\n'
+                    'birlikte iyileştirelim.',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 23,
-                      fontWeight: FontWeight.bold,
+                      fontWeight:
+                          FontWeight.bold,
                     ),
                   ),
 
                   SizedBox(height: 10),
 
                   Text(
-                    'Yaşadığın sorunları bildir, şehir içi ulaşımın geliştirilmesine katkı sağla.',
+                    'Yaşadığın sorunları bildir, '
+                    'şehir içi ulaşımın '
+                    'geliştirilmesine katkı sağla.',
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 15,
@@ -101,10 +123,13 @@ class _AnaSayfaState extends State<AnaSayfa> {
 
             const SizedBox(height: 16),
 
+            // ŞİKAYET OLUŞTUR
             _MenuCard(
-              icon: Icons.report_problem_outlined,
+              icon:
+                  Icons.report_problem_outlined,
               title: 'Şikayet Oluştur',
-              description: 'Yaşadığın ulaşım sorununu bildir.',
+              description:
+                  'Yaşadığın ulaşım sorununu bildir.',
               onTap: () {
                 Navigator.pushNamed(
                   context,
@@ -115,10 +140,13 @@ class _AnaSayfaState extends State<AnaSayfa> {
 
             const SizedBox(height: 12),
 
+            // BENİM ŞİKAYETLERİM
             _MenuCard(
               icon: Icons.list_alt,
               title: 'Şikayetlerim',
-              description: 'Gönderdiğin şikayetleri görüntüle.',
+              description:
+                  'Sadece kendi gönderdiğin '
+                  'şikayetleri görüntüle.',
               onTap: () {
                 Navigator.pushNamed(
                   context,
@@ -129,10 +157,73 @@ class _AnaSayfaState extends State<AnaSayfa> {
 
             const SizedBox(height: 12),
 
+            // TOPLULUK ŞİKAYETLERİ
+            _MenuCard(
+              icon: Icons.groups_outlined,
+              title: 'Topluluk Şikayetleri',
+              description:
+                  'Diğer kullanıcıların '
+                  'şikayetlerini gör, yorum yap '
+                  've beğen.',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const ToplulukSikayetleriSayfasi(),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            // SEFER SAATLERİ
+            _MenuCard(
+              icon: Icons.schedule_outlined,
+              title: 'Sefer Saatleri',
+              description:
+                  'Bartın güzergahlarının sefer '
+                  'saatlerini görüntüle.',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const SeferSaatleriSayfasi(),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            // ŞİKAYET HARİTASI
+            _MenuCard(
+              icon: Icons.map_outlined,
+              title: 'Şikayet Haritası',
+              description:
+                  'Konumlu şikayetleri harita '
+                  'üzerinde görüntüle.',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const HaritaScreen(),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            // PROFİL
             _MenuCard(
               icon: Icons.person_outline,
               title: 'Profil',
-              description: 'Hesap bilgilerini görüntüle.',
+              description:
+                  'Hesap bilgilerini görüntüle.',
               onTap: () {
                 Navigator.pushNamed(
                   context,
@@ -144,23 +235,31 @@ class _AnaSayfaState extends State<AnaSayfa> {
         ),
       ),
 
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar:
+          NavigationBar(
         selectedIndex: _seciliIndex,
-        onDestinationSelected: _sayfaDegistir,
+        onDestinationSelected:
+            _sayfaDegistir,
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
+            icon:
+                Icon(Icons.home_outlined),
+            selectedIcon:
+                Icon(Icons.home),
             label: 'Ana Sayfa',
           ),
           NavigationDestination(
-            icon: Icon(Icons.list_alt_outlined),
-            selectedIcon: Icon(Icons.list_alt),
+            icon:
+                Icon(Icons.list_alt_outlined),
+            selectedIcon:
+                Icon(Icons.list_alt),
             label: 'Şikayetlerim',
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
+            icon:
+                Icon(Icons.person_outline),
+            selectedIcon:
+                Icon(Icons.person),
             label: 'Profil',
           ),
         ],
@@ -169,7 +268,8 @@ class _AnaSayfaState extends State<AnaSayfa> {
   }
 }
 
-class _MenuCard extends StatelessWidget {
+class _MenuCard
+    extends StatelessWidget {
   final IconData icon;
   final String title;
   final String description;
@@ -183,21 +283,32 @@ class _MenuCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return Card(
       elevation: 0,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius:
+            BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding:
+              const EdgeInsets.all(18),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(14),
+                padding:
+                    const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.indigo.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(14),
+                  color:
+                      Colors.indigo.withValues(
+                    alpha: 0.1,
+                  ),
+                  borderRadius:
+                      BorderRadius.circular(
+                    14,
+                  ),
                 ),
                 child: Icon(
                   icon,
@@ -210,21 +321,27 @@ class _MenuCard extends StatelessWidget {
 
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
+                      style:
+                          const TextStyle(
+                        fontWeight:
+                            FontWeight.bold,
                         fontSize: 17,
                       ),
                     ),
 
-                    const SizedBox(height: 4),
+                    const SizedBox(
+                      height: 4,
+                    ),
 
                     Text(
                       description,
-                      style: const TextStyle(
+                      style:
+                          const TextStyle(
                         color: Colors.grey,
                       ),
                     ),
@@ -232,7 +349,10 @@ class _MenuCard extends StatelessWidget {
                 ),
               ),
 
-              const Icon(Icons.arrow_forward_ios, size: 18),
+              const Icon(
+                Icons.arrow_forward_ios,
+                size: 18,
+              ),
             ],
           ),
         ),

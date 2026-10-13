@@ -1,28 +1,77 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import '../services/auth_storage.dart';
 
 class GirisSayfasi extends StatefulWidget {
   const GirisSayfasi({super.key});
 
   @override
-  State<GirisSayfasi> createState() => _GirisSayfasiState();
+  State<GirisSayfasi> createState() =>
+      _GirisSayfasiState();
 }
 
-class _GirisSayfasiState extends State<GirisSayfasi> {
+class _GirisSayfasiState
+    extends State<GirisSayfasi> {
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController
+      _identifierController =
+      TextEditingController();
 
-  final ApiService _apiService = ApiService();
+  final TextEditingController
+      _passwordController =
+      TextEditingController();
+
+  final ApiService _apiService =
+      ApiService();
+
+  final AuthStorage _authStorage =
+      AuthStorage();
 
   bool _loading = false;
   bool _sifreGizli = true;
+  bool _beniHatirla = false;
+  bool _bilgilerYukleniyor = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _kayitliBilgileriGetir();
+  }
+
+  Future<void> _kayitliBilgileriGetir()
+      async {
+    final remembered =
+        await _authStorage.isRemembered();
+
+    if (remembered) {
+      final identifier =
+          await _authStorage
+              .getSavedIdentifier();
+
+      final password =
+          await _authStorage
+              .getSavedPassword();
+
+      _identifierController.text =
+          identifier ?? '';
+
+      _passwordController.text =
+          password ?? '';
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _beniHatirla = remembered;
+      _bilgilerYukleniyor = false;
+    });
+  }
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -36,35 +85,106 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
       _loading = true;
     });
 
-    final sonuc = await _apiService.login(
-      _emailController.text.trim(),
-      _passwordController.text,
-    );
+    try {
+      final identifier =
+          _identifierController.text.trim();
 
-    if (!mounted) return;
+      final password =
+          _passwordController.text;
 
-    setState(() {
-      _loading = false;
-    });
+      final result =
+          await _apiService.login(
+        identifier,
+        password,
+      );
+         
+          if (result['must_reset_password'] == true) {
+  if (!mounted) return;
 
-    if (sonuc) {
-      Navigator.pushReplacementNamed(context, '/ana');
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        result['message'] ??
+            'Şifrenizi yenilemeniz gerekiyor.',
+      ),
+    ),
+  );
+
+  Navigator.pushNamed(
+    context,
+    '/sifremi-unuttum',
+  );
+
+  return;
+}
+
+      if (result['success'] == true) {
+        
+        await _authStorage.saveCurrentPassword(
+        password,
+      );
+
+        if (_beniHatirla) {
+          await _authStorage.saveLoginInfo(
+            identifier: identifier,
+            password: password,
+          );
+        } else {
+          await _authStorage
+              .clearLoginInfo();
+        }
+
+        if (!mounted) return;
+
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/ana',
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          content: Text(
+            'Giriş yapılamadı: $e',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_bilgilerYukleniyor) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding:
+                const EdgeInsets.all(24),
             child: Form(
               key: _formKey,
               child: Column(
                 children: [
                   const Icon(
-                    Icons.directions_bus_rounded,
+                    Icons
+                        .directions_bus_rounded,
                     size: 80,
                     color: Colors.indigo,
                   ),
@@ -75,33 +195,32 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
                     'Akıllı Toplu Taşıma',
                     style: TextStyle(
                       fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  const Text(
-                    'Toplu taşıma deneyimini birlikte iyileştirelim.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.grey,
+                      fontWeight:
+                          FontWeight.bold,
                     ),
                   ),
 
                   const SizedBox(height: 40),
 
                   TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'E-posta',
-                      prefixIcon: Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(),
+                    controller:
+                        _identifierController,
+                    decoration:
+                        const InputDecoration(
+                      labelText:
+                          'E-posta veya Telefon',
+                      hintText:
+                          'ornek@mail.com veya 05551234567',
+                      prefixIcon: Icon(
+                        Icons.person_outline,
+                      ),
+                      border:
+                          OutlineInputBorder(),
                     ),
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'E-posta adresinizi girin.';
+                      if (value == null ||
+                          value.trim().isEmpty) {
+                        return 'E-posta veya telefon girin.';
                       }
 
                       return null;
@@ -111,27 +230,37 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
                   const SizedBox(height: 16),
 
                   TextFormField(
-                    controller: _passwordController,
+                    controller:
+                        _passwordController,
                     obscureText: _sifreGizli,
-                    decoration: InputDecoration(
+                    decoration:
+                        InputDecoration(
                       labelText: 'Şifre',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
+                      prefixIcon:
+                          const Icon(
+                        Icons.lock_outline,
+                      ),
+                      border:
+                          const OutlineInputBorder(),
+                      suffixIcon:
+                          IconButton(
                         onPressed: () {
                           setState(() {
-                            _sifreGizli = !_sifreGizli;
+                            _sifreGizli =
+                                !_sifreGizli;
                           });
                         },
                         icon: Icon(
                           _sifreGizli
                               ? Icons.visibility
-                              : Icons.visibility_off,
+                              : Icons
+                                  .visibility_off,
                         ),
                       ),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
+                      if (value == null ||
+                          value.isEmpty) {
                         return 'Şifrenizi girin.';
                       }
 
@@ -139,16 +268,69 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
                     },
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 4),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child:
+                            CheckboxListTile(
+                          contentPadding:
+                              EdgeInsets.zero,
+                          value:
+                              _beniHatirla,
+                          controlAffinity:
+                              ListTileControlAffinity
+                                  .leading,
+                          title: const Text(
+                            'Beni Hatırla',
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              _beniHatirla =
+                                  value ??
+                                      false;
+                            });
+                          },
+                        ),
+                      ),
+
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/sifremi-unuttum',
+                          );
+                        },
+                        child: const Text(
+                          'Şifremi Unuttum',
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
 
                   SizedBox(
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: _loading ? null : _girisYap,
+                      onPressed:
+                          _loading
+                              ? null
+                              : _girisYap,
                       child: _loading
-                          ? const CircularProgressIndicator()
-                          : const Text('Giriş Yap'),
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child:
+                                  CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Giriş Yap',
+                            ),
                     ),
                   ),
 
@@ -156,7 +338,10 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
 
                   TextButton(
                     onPressed: () {
-                      Navigator.pushNamed(context, '/kayit');
+                      Navigator.pushNamed(
+                        context,
+                        '/kayit',
+                      );
                     },
                     child: const Text(
                       'Hesabınız yok mu? Kayıt olun',

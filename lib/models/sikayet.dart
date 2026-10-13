@@ -8,6 +8,9 @@ class Sikayet {
   final String durum;
   final DateTime tarih;
 
+  final double? latitude;
+  final double? longitude;
+
   Sikayet({
     required this.id,
     required this.baslik,
@@ -17,6 +20,8 @@ class Sikayet {
     required this.durak,
     required this.durum,
     required this.tarih,
+    this.latitude,
+    this.longitude,
   });
 
   factory Sikayet.fromJson(Map<String, dynamic> json) {
@@ -37,7 +42,6 @@ class Sikayet {
       }
     } else if (json['line'] is String &&
         (json['line'] as String).isNotEmpty) {
-      // Eski kayıtlarla uyumluluk
       hatAdi = json['line'];
     }
 
@@ -52,7 +56,6 @@ class Sikayet {
       }
     } else if (json['stop'] is String &&
         (json['stop'] as String).isNotEmpty) {
-      // Eski kayıtlarla uyumluluk
       durakAdi = json['stop'];
     }
 
@@ -67,6 +70,14 @@ class Sikayet {
       tarih: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : DateTime.now(),
+
+      latitude: json['latitude'] != null
+          ? double.tryParse(json['latitude'].toString())
+          : null,
+
+      longitude: json['longitude'] != null
+          ? double.tryParse(json['longitude'].toString())
+          : null,
     );
   }
 
@@ -80,6 +91,8 @@ class Sikayet {
       'stop': durak,
       'status': durum,
       'created_at': tarih.toIso8601String(),
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 }
