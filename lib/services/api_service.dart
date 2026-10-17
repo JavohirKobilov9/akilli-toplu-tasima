@@ -16,7 +16,7 @@ import '../models/stop.dart';
 
 class ApiService {
 
-  final String baseUrl = 'http://127.0.0.1:8000/api';
+  final String baseUrl = 'http://10.0.2.2:8000/api';
 
   Future<Map<String, dynamic>> uploadProfilePhoto(
 
@@ -671,7 +671,62 @@ Future<List<Sikayet>> getMyComplaints() async {
     );
 
   }
+// bitis
 
+
+Future<List<Sikayet>> getAdminSikayetler() async {
+  final token = await getToken();
+
+  if (token == null || token.isEmpty) {
+    throw Exception(
+      'Oturum bulunamadı. Lütfen tekrar giriş yapın.',
+    );
+  }
+
+  final response = await http.get(
+    Uri.parse('$baseUrl/admin/complaints'),
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+  );
+
+  if (response.statusCode == 200) {
+    final Map<String, dynamic> jsonData =
+        jsonDecode(response.body);
+
+    final List<dynamic> data = jsonData['data'];
+
+    return data
+        .map(
+          (item) => Sikayet.fromJson(
+            item as Map<String, dynamic>,
+          ),
+        )
+        .toList();
+  }
+
+  if (response.statusCode == 401) {
+    throw Exception(
+      'Oturum süresi dolmuş. Tekrar giriş yapın.',
+    );
+  }
+
+  if (response.statusCode == 403) {
+    throw Exception(
+      'Bu işlem için yönetici yetkisi gerekiyor.',
+    );
+  }
+
+  throw Exception(
+    'Yönetici şikayetleri alınamadı. '
+    'HTTP ${response.statusCode}',
+  );
+}
+
+
+
+  // Şikayeti isteğe bağlı fotoğraf veya video ile Laravel API'ye gönderir.
   Future<bool> sikayetOlustur({
     required String baslik,
     required String kategori,
@@ -680,6 +735,7 @@ Future<List<Sikayet>> getMyComplaints() async {
     int? stopId,
     double? latitude,
     double? longitude,
+    String? mediaPath,
   }) async {
     final token = await getToken();
 
@@ -689,34 +745,70 @@ Future<List<Sikayet>> getMyComplaints() async {
       );
     }
 
-    final response = await http.post(
+    final request = http.MultipartRequest(
+      'POST',
       Uri.parse('$baseUrl/complaints'),
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'title': baslik,
-        'category': kategori,
-        'description': aciklama,
-        'line_id': lineId,
-        'stop_id': stopId,
-        'latitude': latitude,
-        'longitude': longitude,
-      }),
     );
 
-    final Map<String, dynamic> data =
-        jsonDecode(response.body);
+    request.headers.addAll({
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    });
+
+    // Multipart alanlarında tüm değerler metin olmalıdır.
+    request.fields.addAll({
+      'title': baslik,
+      'category': kategori,
+      'description': aciklama,
+      'line_id': lineId.toString(),
+    });
+
+    if (stopId != null) {
+      request.fields['stop_id'] = stopId.toString();
+    }
+    if (latitude != null) {
+      request.fields['latitude'] = latitude.toString();
+    }
+    if (longitude != null) {
+      request.fields['longitude'] = longitude.toString();
+    }
+
+    // Fotoğraf/video zorunlu değil; seçildiyse tek dosya eklenir.
+    if (mediaPath != null && mediaPath.trim().isNotEmpty) {
+      request.files.add(
+        await http.MultipartFile.fromPath('media', mediaPath),
+      );
+    }
+
+    // Content-Type başlığını manuel eklemiyoruz:
+    // MultipartRequest gerekli boundary değerini kendi ayarlar.
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode == 201) {
       return true;
     }
 
+    String errorMessage = 'Şikayet gönderilemedi.';
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        final errors = decoded['errors'];
+        if (errors is Map && errors.isNotEmpty) {
+          final firstError = errors.values.first;
+          if (firstError is List && firstError.isNotEmpty) {
+            errorMessage = firstError.first.toString();
+          }
+        } else if (decoded['message'] is String) {
+          errorMessage = decoded['message'] as String;
+        }
+      }
+    } catch (_) {
+      // Sunucu JSON dışı hata döndürürse genel mesajı göster.
+    }
+
     throw Exception(
-      data['message'] ??
-          'Şikayet gönderilemedi.',
+      '$errorMessage (HTTP ${response.statusCode})',
     );
   }
 
@@ -1144,6 +1236,91 @@ Future<bool> deleteComment(
 
   );
 
+}
+
+Future<void> freezeAccount({
+  required String password,
+}) async {
+  final token = await getToken();
+
+  if (token == null || token.isEmpty) {
+    throw Exception(
+      'Oturum bulunamadı. Lütfen tekrar giriş yapın.',
+    );
+  }
+
+  final response = await http.post(
+    Uri.parse('$baseUrl/account/freeze'),
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode({
+      'password': password,
+    }),
+  );
+
+  Map<String, dynamic> data = {};
+
+  try {
+    final decoded = jsonDecode(
+      response.body,
+    );
+
+    if (decoded
+        is Map<String, dynamic>) {
+      data = decoded;
+    }
+  } catch (_) {}
+
+  if (response.statusCode == 200) {
+    await clearToken();
+    return;
+  }
+
+  throw Exception(
+    data['message'] ??
+        'Hesap dondurulamadı.',
+  );
+}
+
+
+Future<void> deleteAccount({
+  required String password,
+}) async {
+  final token = await getToken();
+
+  if (token == null || token.isEmpty) {
+    throw Exception(
+      'Oturum bulunamadı. Lütfen tekrar giriş yapın.',
+    );
+  }
+
+  final response = await http.delete(
+    Uri.parse('$baseUrl/account'),
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode({
+      'password': password,
+    }),
+  );
+
+  final Map<String, dynamic> data =
+      jsonDecode(response.body);
+
+  if (response.statusCode == 200) {
+    await clearToken();
+    return;
+  }
+
+  throw Exception(
+    data['message'] ??
+        'Hesap silinemedi.',
+  );
 }
 
  Future<Map<String, dynamic>> getMe() async {

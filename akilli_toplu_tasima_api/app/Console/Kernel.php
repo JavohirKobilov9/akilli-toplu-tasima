@@ -15,7 +15,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        $schedule->command('accounts:delete-expired-frozen')->dailyAt('03:00');
+        $schedule->command('complaints:cleanup-orphan-media')->dailyAt('03:30');
     }
 
     /**

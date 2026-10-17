@@ -1,10 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/line.dart';
 import '../models/stop.dart';
 import '../services/api_service.dart';
-import 'konum_sec.dart';
+
+
 
 class SikayetOlusturSayfasi extends StatefulWidget {
   const SikayetOlusturSayfasi({super.key});
@@ -17,6 +21,11 @@ class SikayetOlusturSayfasi extends StatefulWidget {
 class _SikayetOlusturSayfasiState
     extends State<SikayetOlusturSayfasi> {
   final _formKey = GlobalKey<FormState>();
+
+  final ImagePicker _imagePicker = ImagePicker();
+
+  XFile? _secilenMedya;
+  String? _medyaTuru; // photo veya video
 
   final TextEditingController _baslikController =
       TextEditingController();
@@ -33,7 +42,11 @@ class _SikayetOlusturSayfasiState
 
   Line? _secilenHat;
   Stop? _secilenDurak;
-  LatLng? _secilenKonum;
+  double? _latitude;
+  double? _longitude;
+
+  bool _konumAliniyor = true;
+  String? _konumHatasi;
 
   String? _secilenKategori;
 
@@ -55,6 +68,7 @@ class _SikayetOlusturSayfasiState
   void initState() {
     super.initState();
     _hatlariGetir();
+    _otomatikKonumAl();
   }
 
   @override
@@ -125,23 +139,264 @@ class _SikayetOlusturSayfasiState
     }
   }
 
-  Future<void> _konumSec() async {
-    final sonuc = await Navigator.push<LatLng>(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            const KonumSecSayfasi(),
-      ),
+  Future<void> _otomatikKonumAl() async {
+    if (!mounted) return;
+
+    setState(() {
+      _konumAliniyor = true;
+      _konumHatasi = null;
+    });
+
+    try {
+      final serviceEnabled =
+          await Geolocator.isLocationServiceEnabled();
+
+      if (!serviceEnabled) {
+        throw Exception(
+          'Konum servisi kapalı. Lütfen telefonunuzun konumunu açın.',
+        );
+      }
+
+      LocationPermission permission =
+          await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission =
+            await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied) {
+        throw Exception(
+          'Konum izni verilmedi. Şikayet oluşturmak için konum izni gereklidir.',
+        );
+      }
+
+      if (permission ==
+          LocationPermission.deniedForever) {
+        throw Exception(
+          'Konum izni kalıcı olarak kapatılmış. Telefon ayarlarından uygulamanın konum iznini açın.',
+        );
+      }
+
+      final position =
+          await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _latitude = position.latitude;
+        _longitude = position.longitude;
+        _konumAliniyor = false;
+        _konumHatasi = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      final mesaj = e
+          .toString()
+          .replaceFirst(
+            'Exception: ',
+            '',
+          );
+
+      setState(() {
+        _latitude = null;
+        _longitude = null;
+        _konumAliniyor = false;
+        _konumHatasi = mesaj;
+      });
+    }
+  }
+
+  Future<void> _fotografSecenekleriniGoster() async {
+  final secim = await showModalBottomSheet<String>(
+    context: context,
+    showDragHandle: true,
+    builder: (context) {
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(
+              title: Text(
+                'Fotoğraf Ekle',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.camera_alt_outlined,
+              ),
+              title: const Text(
+                'Kameradan Çek',
+              ),
+              onTap: () {
+                Navigator.pop(
+                  context,
+                  'camera',
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.photo_library_outlined,
+              ),
+              title: const Text(
+                'Galeriden Seç',
+              ),
+              onTap: () {
+                Navigator.pop(
+                  context,
+                  'gallery',
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+
+  if (secim == null) {
+    return;
+  }
+
+  final source = secim == 'camera'
+      ? ImageSource.camera
+      : ImageSource.gallery;
+
+  try {
+    final fotograf =
+        await _imagePicker.pickImage(
+      source: source,
+      imageQuality: 80,
+      maxWidth: 1600,
     );
 
-    if (sonuc == null || !mounted) {
+    if (fotograf == null || !mounted) {
       return;
     }
 
     setState(() {
-      _secilenKonum = sonuc;
+      _secilenMedya = fotograf;
+      _medyaTuru = 'photo';
     });
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+      SnackBar(
+        content: Text(
+          'Fotoğraf seçilemedi: $e',
+        ),
+      ),
+    );
   }
+}
+
+Future<void> _videoSecenekleriniGoster() async {
+  final secim = await showModalBottomSheet<String>(
+    context: context,
+    showDragHandle: true,
+    builder: (context) {
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(
+              title: Text(
+                'Video Ekle',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.videocam_outlined,
+              ),
+              title: const Text(
+                'Video Çek',
+              ),
+              onTap: () {
+                Navigator.pop(
+                  context,
+                  'camera',
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.video_library_outlined,
+              ),
+              title: const Text(
+                'Galeriden Seç',
+              ),
+              onTap: () {
+                Navigator.pop(
+                  context,
+                  'gallery',
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+
+  if (secim == null) {
+    return;
+  }
+
+  final source = secim == 'camera'
+      ? ImageSource.camera
+      : ImageSource.gallery;
+
+  try {
+    final video =
+        await _imagePicker.pickVideo(
+      source: source,
+      maxDuration: const Duration(
+        seconds: 60,
+      ),
+    );
+
+    if (video == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _secilenMedya = video;
+      _medyaTuru = 'video';
+    });
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+      SnackBar(
+        content: Text(
+          'Video seçilemedi: $e',
+        ),
+      ),
+    );
+  }
+}
+
+void _medyayiKaldir() {
+  setState(() {
+    _secilenMedya = null;
+    _medyaTuru = null;
+  });
+}
 
   Future<void> _sikayetGonder() async {
     setState(() {
@@ -154,6 +409,22 @@ class _SikayetOlusturSayfasiState
 
     if (_secilenHat == null ||
         _secilenKategori == null) {
+      return;
+    }
+
+    if (_konumAliniyor) {
+      setState(() {
+        _hataMesaji =
+            'Konumunuz henüz alınıyor. Lütfen birkaç saniye bekleyin.';
+      });
+      return;
+    }
+
+    if (_latitude == null || _longitude == null) {
+      setState(() {
+        _hataMesaji =
+            'Konum alınamadı. Konum servisini ve uygulama iznini kontrol edip tekrar deneyin.';
+      });
       return;
     }
 
@@ -170,8 +441,9 @@ class _SikayetOlusturSayfasiState
             _aciklamaController.text.trim(),
         lineId: _secilenHat!.id,
         stopId: _secilenDurak?.id,
-        latitude: _secilenKonum?.latitude,
-        longitude: _secilenKonum?.longitude,
+        latitude: _latitude,
+        longitude: _longitude,
+        mediaPath: _secilenMedya?.path,
       );
 
       if (!mounted) return;
@@ -328,7 +600,6 @@ class _SikayetOlusturSayfasiState
                       setState(() {
                         _secilenHat = hat;
                         _secilenDurak = null;
-                        _secilenKonum = null;
                       });
 
                       _duraklariGetir(hat.id);
@@ -402,28 +673,289 @@ class _SikayetOlusturSayfasiState
                       ),
                       child: const Text(
                         'Bu güzergah için durak verisi bulunmuyor. '
-                        'Şikayet konumunu haritadan seçebilirsiniz.',
+                        'Telefon konumu otomatik olarak kullanılacaktır.',
                       ),
                     ),
                 ],
 
                 const SizedBox(height: 16),
 
-                OutlinedButton.icon(
-                  onPressed: _konumSec,
-                  icon: const Icon(
-                    Icons.map_outlined,
+                if (_konumAliniyor)
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.blue.shade200,
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Telefon konumunuz otomatik olarak alınıyor...',
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (_konumHatasi != null)
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.orange.shade300,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.location_off_outlined,
+                              color: Colors.orange.shade800,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _konumHatasi!,
+                                style: TextStyle(
+                                  color: Colors.orange.shade900,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          onPressed: _otomatikKonumAl,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text(
+                            'Konumu Tekrar Al',
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.green.shade300,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.my_location,
+                          color: Colors.green.shade700,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Konumunuz otomatik olarak alındı.',
+                            style: TextStyle(
+                              color: Colors.green.shade800,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Konumu yenile',
+                          onPressed: _otomatikKonumAl,
+                          icon: const Icon(Icons.refresh),
+                        ),
+                      ],
+                    ),
                   ),
-                  label: Text(
-                    _secilenKonum == null
-                        ? 'Haritadan Konum Seç'
-                        : 'Konum Seçildi '
-                            '(${_secilenKonum!.latitude.toStringAsFixed(5)}, '
-                            '${_secilenKonum!.longitude.toStringAsFixed(5)})',
+
+                const SizedBox(height: 16),
+
+                // FOTOĞRAF / VİDEO EKLE
+Container(
+  padding: const EdgeInsets.all(14),
+  decoration: BoxDecoration(
+    border: Border.all(
+      color: Colors.grey.shade400,
+    ),
+    borderRadius:
+        BorderRadius.circular(12),
+  ),
+  child: Column(
+    crossAxisAlignment:
+        CrossAxisAlignment.stretch,
+    children: [
+      const Text(
+        'Fotoğraf veya Video Ekle',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 15,
+        ),
+      ),
+
+      const SizedBox(height: 12),
+
+      Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed:
+                  _fotografSecenekleriniGoster,
+              icon: const Icon(
+                Icons.camera_alt_outlined,
+              ),
+              label: const Text(
+                'Fotoğraf',
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 12),
+
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed:
+                  _videoSecenekleriniGoster,
+              icon: const Icon(
+                Icons.videocam_outlined,
+              ),
+              label: const Text(
+                'Video',
+              ),
+            ),
+          ),
+        ],
+      ),
+
+      if (_secilenMedya != null) ...[
+        const SizedBox(height: 14),
+
+        Container(
+          padding:
+              const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.indigo
+                .withValues(
+              alpha: 0.06,
+            ),
+            borderRadius:
+                BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              if (_medyaTuru ==
+                  'photo')
+                ClipRRect(
+                  borderRadius:
+                      BorderRadius.circular(
+                    8,
+                  ),
+                  child: Image.file(
+                    File(
+                      _secilenMedya!.path,
+                    ),
+                    width: 65,
+                    height: 65,
+                    fit: BoxFit.cover,
+                  ),
+                )
+              else
+                Container(
+                  width: 65,
+                  height: 65,
+                  decoration:
+                      BoxDecoration(
+                    color: Colors
+                        .indigo.shade50,
+                    borderRadius:
+                        BorderRadius.circular(
+                      8,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons
+                        .play_circle_outline,
+                    size: 36,
+                    color: Colors.indigo,
                   ),
                 ),
 
-                const SizedBox(height: 16),
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment
+                          .start,
+                  children: [
+                    Text(
+                      _medyaTuru ==
+                              'photo'
+                          ? 'Fotoğraf seçildi'
+                          : 'Video seçildi',
+                      style:
+                          const TextStyle(
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 4,
+                    ),
+                    Text(
+                      _secilenMedya!.name,
+                      maxLines: 1,
+                      overflow:
+                          TextOverflow
+                              .ellipsis,
+                      style:
+                          const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              IconButton(
+                tooltip:
+                    'Medyayı kaldır',
+                onPressed:
+                    _medyayiKaldir,
+                icon: const Icon(
+                  Icons.close,
+                  color: Colors.red,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ],
+  ),
+),
+
+const SizedBox(height: 16),
 
                 TextFormField(
                   controller:

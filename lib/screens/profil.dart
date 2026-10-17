@@ -9,16 +9,21 @@ class ProfilSayfasi extends StatefulWidget {
   const ProfilSayfasi({super.key});
 
   @override
-  State<ProfilSayfasi> createState() => _ProfilSayfasiState();
+  State<ProfilSayfasi> createState() =>
+      _ProfilSayfasiState();
 }
 
-class _ProfilSayfasiState extends State<ProfilSayfasi> {
+class _ProfilSayfasiState
+    extends State<ProfilSayfasi> {
   final ApiService _apiService = ApiService();
   final AuthStorage _authStorage = AuthStorage();
 
-  late Future<Map<String, dynamic>> _kullaniciFuture;
+  late Future<Map<String, dynamic>>
+      _kullaniciFuture;
 
   bool _cikisYapiliyor = false;
+  bool _hesapDonduruluyor = false;
+  bool _hesapSiliniyor = false;
   bool _fotografIslemiYapiliyor = false;
 
   String? _kayitliSifre;
@@ -45,7 +50,8 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
 
   void _yenile() {
     setState(() {
-      _kullaniciFuture = _apiService.getMe();
+      _kullaniciFuture =
+          _apiService.getMe();
     });
   }
 
@@ -74,86 +80,95 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
     await _kayitliSifreyiGetir();
   }
 
+  // --------------------------------------------------
+  // PROFİL FOTOĞRAFI SEÇ
+  // --------------------------------------------------
+
   Future<void> _profilFotografiSec() async {
-  if (_fotografIslemiYapiliyor) return;
-
-  try {
-    final file =
-        await FilePicker.pickFile(
-      type: FileType.image,
-    );
-
-    if (file == null) {
+    if (_fotografIslemiYapiliyor) {
       return;
     }
 
-    final filePath = file.path;
+    try {
+      final file = await FilePicker.pickFile(
+        type: FileType.image,
+      );
 
-    if (filePath == null ||
-        filePath.isEmpty) {
+      if (file == null) {
+        return;
+      }
+
+      final filePath = file.path;
+
+      if (filePath == null ||
+          filePath.isEmpty) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context)
+            .showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Seçilen fotoğrafın dosya yolu alınamadı.',
+            ),
+          ),
+        );
+
+        return;
+      }
+
+      setState(() {
+        _fotografIslemiYapiliyor = true;
+      });
+
+      await _apiService.uploadProfilePhoto(
+        filePath,
+      );
+
       if (!mounted) return;
+
+      _yenile();
 
       ScaffoldMessenger.of(context)
           .showSnackBar(
         const SnackBar(
           content: Text(
-            'Seçilen fotoğrafın dosya yolu alınamadı.',
+            'Profil fotoğrafı başarıyla güncellendi.',
           ),
         ),
       );
+    } catch (e) {
+      if (!mounted) return;
 
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          content: Text(
+            'Profil fotoğrafı yüklenemedi: $e',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _fotografIslemiYapiliyor =
+              false;
+        });
+      }
+    }
+  }
+
+  // --------------------------------------------------
+  // PROFİL FOTOĞRAFI SİL
+  // --------------------------------------------------
+
+  Future<void> _profilFotografiSil() async {
+    if (_fotografIslemiYapiliyor) {
       return;
     }
 
-    if (!mounted) return;
-
-    setState(() {
-      _fotografIslemiYapiliyor = true;
-    });
-
-    await _apiService.uploadProfilePhoto(
-      filePath,
-    );
-
-    if (!mounted) return;
-
-    _yenile();
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Profil fotoğrafı başarıyla güncellendi.',
-        ),
-      ),
-    );
-  } catch (e) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      SnackBar(
-        content: Text(
-          'Profil fotoğrafı yüklenemedi: $e',
-        ),
-      ),
-    );
-  } finally {
-    if (mounted) {
-      setState(() {
-        _fotografIslemiYapiliyor = false;
-      });
-    }
-  }
-}
-
-  Future<void> _profilFotografiSil() async {
-    if (_fotografIslemiYapiliyor) return;
-
-    final onay =
-        await showDialog<bool>(
+    final onay = await showDialog<bool>(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text(
             'Profil Fotoğrafını Sil',
@@ -166,7 +181,7 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
             TextButton(
               onPressed: () {
                 Navigator.pop(
-                  context,
+                  dialogContext,
                   false,
                 );
               },
@@ -177,7 +192,7 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
             FilledButton(
               onPressed: () {
                 Navigator.pop(
-                  context,
+                  dialogContext,
                   true,
                 );
               },
@@ -190,7 +205,9 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
       },
     );
 
-    if (onay != true) return;
+    if (onay != true) {
+      return;
+    }
 
     setState(() {
       _fotografIslemiYapiliyor = true;
@@ -226,13 +243,19 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
     } finally {
       if (mounted) {
         setState(() {
-          _fotografIslemiYapiliyor = false;
+          _fotografIslemiYapiliyor =
+              false;
         });
       }
     }
   }
 
-  Future<void> _fotografSecenekleriniGoster(
+  // --------------------------------------------------
+  // PROFİL FOTOĞRAFI MENÜSÜ
+  // --------------------------------------------------
+
+  Future<void>
+      _fotografSecenekleriniGoster(
     bool fotografVar,
   ) async {
     if (_fotografIslemiYapiliyor) {
@@ -242,69 +265,433 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) {
+      builder: (sheetContext) {
         return SafeArea(
-          child: Padding(
-            padding:
-                const EdgeInsets.only(
-              bottom: 10,
-            ),
-            child: Column(
-              mainAxisSize:
-                  MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(
-                    Icons.photo_library_outlined,
-                  ),
-                  title: Text(
-                    fotografVar
-                        ? 'Fotoğrafı Değiştir'
-                        : 'Fotoğraf Seç',
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _profilFotografiSec();
-                  },
+          child: Column(
+            mainAxisSize:
+                MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(
+                  Icons
+                      .photo_library_outlined,
                 ),
-                if (fotografVar)
-                  ListTile(
-                    leading: const Icon(
-                      Icons.delete_outline,
-                      color: Colors.red,
-                    ),
-                    title: const Text(
-                      'Fotoğrafı Sil',
-                      style: TextStyle(
-                        color: Colors.red,
-                      ),
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _profilFotografiSil();
-                    },
-                  ),
+                title: Text(
+                  fotografVar
+                      ? 'Fotoğrafı Değiştir'
+                      : 'Fotoğraf Seç',
+                ),
+                onTap: () {
+                  Navigator.pop(
+                    sheetContext,
+                  );
+
+                  _profilFotografiSec();
+                },
+              ),
+
+              if (fotografVar)
                 ListTile(
                   leading: const Icon(
-                    Icons.close,
+                    Icons.delete_outline,
+                    color: Colors.red,
                   ),
                   title: const Text(
-                    'Vazgeç',
+                    'Fotoğrafı Sil',
+                    style: TextStyle(
+                      color: Colors.red,
+                    ),
                   ),
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.pop(
+                      sheetContext,
+                    );
+
+                    _profilFotografiSil();
                   },
                 ),
-              ],
-            ),
+
+              ListTile(
+                leading: const Icon(
+                  Icons.close,
+                ),
+                title: const Text(
+                  'Vazgeç',
+                ),
+                onTap: () {
+                  Navigator.pop(
+                    sheetContext,
+                  );
+                },
+              ),
+            ],
           ),
         );
       },
     );
   }
 
+  // --------------------------------------------------
+  // ŞİFRE İSTE DİYALOĞU
+  // --------------------------------------------------
+
+  Future<String?> _sifreIste({
+  required String baslik,
+  required String aciklama,
+  required String butonMetni,
+  required Color butonRengi,
+}) async {
+  String sifre = '';
+  String? hataMesaji;
+  bool sifreGoster = false;
+
+  final sonuc = await showDialog<String>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (
+          context,
+          setDialogState,
+        ) {
+          return AlertDialog(
+            title: Text(
+              baslik,
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize:
+                    MainAxisSize.min,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    aciklama,
+                  ),
+
+                  const SizedBox(
+                    height: 18,
+                  ),
+
+                  TextField(
+                    obscureText:
+                        !sifreGoster,
+                    autofocus: true,
+                    onChanged: (value) {
+                      sifre = value;
+
+                      if (hataMesaji != null) {
+                        setDialogState(() {
+                          hataMesaji = null;
+                        });
+                      }
+                    },
+                    decoration:
+                        InputDecoration(
+                      labelText:
+                          'Mevcut Şifre',
+                      border:
+                          const OutlineInputBorder(),
+                      prefixIcon:
+                          const Icon(
+                        Icons.lock_outline,
+                      ),
+                      suffixIcon:
+                          IconButton(
+                        onPressed: () {
+                          setDialogState(
+                            () {
+                              sifreGoster =
+                                  !sifreGoster;
+                            },
+                          );
+                        },
+                        icon: Icon(
+                          sifreGoster
+                              ? Icons
+                                  .visibility_off
+                              : Icons
+                                  .visibility,
+                        ),
+                      ),
+                      errorText:
+                          hataMesaji,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(
+                    dialogContext,
+                  );
+                },
+                child: const Text(
+                  'Vazgeç',
+                ),
+              ),
+
+              FilledButton(
+                style:
+                    FilledButton.styleFrom(
+                  backgroundColor:
+                      butonRengi,
+                  foregroundColor:
+                      Colors.white,
+                ),
+                onPressed: () {
+                  final password =
+                      sifre.trim();
+
+                  if (password.isEmpty) {
+                    setDialogState(() {
+                      hataMesaji =
+                          'Lütfen mevcut şifrenizi girin.';
+                    });
+
+                    return;
+                  }
+
+                  Navigator.pop(
+                    dialogContext,
+                    password,
+                  );
+                },
+                child: Text(
+                  butonMetni,
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+
+  return sonuc;
+}
+
+  // --------------------------------------------------
+  // HESABI DONDUR
+  // --------------------------------------------------
+
+  Future<void> _hesabiDondur() async {
+    if (_hesapDonduruluyor ||
+        _hesapSiliniyor ||
+        _cikisYapiliyor) {
+      return;
+    }
+
+    final password =
+        await _sifreIste(
+      baslik: 'Hesabı Dondur',
+      aciklama:
+          'Hesabınız dondurulduğunda oturumunuz kapatılır. '
+          '90 gün içinde tekrar giriş yaparsanız hesabınız '
+          'otomatik olarak yeniden aktifleştirilir.\n\n'
+          '90 gün boyunca giriş yapmazsanız hesabınız ve '
+          'hesabınıza bağlı veriler kalıcı olarak silinir.',
+      butonMetni: 'Hesabı Dondur',
+      butonRengi: Colors.orange,
+    );
+
+    if (password == null) {
+      return;
+    }
+
+    setState(() {
+      _hesapDonduruluyor = true;
+    });
+
+    try {
+      await _apiService.freezeAccount(
+        password: password,
+      );
+
+      await _authStorage
+          .clearCurrentPassword();
+
+      if (!mounted) return;
+
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/giris',
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      final mesaj = e
+          .toString()
+          .replaceFirst(
+            'Exception: ',
+            '',
+          );
+
+      setState(() {
+        _hesapDonduruluyor = false;
+      });
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          content: Text(
+            mesaj,
+          ),
+        ),
+      );
+    }
+  }
+
+  // --------------------------------------------------
+  // HESABI KALICI OLARAK SİL
+  // --------------------------------------------------
+
+  Future<void> _hesabiSil() async {
+    if (_hesapSiliniyor ||
+        _hesapDonduruluyor ||
+        _cikisYapiliyor) {
+      return;
+    }
+
+    final password =
+        await _sifreIste(
+      baslik:
+          'Hesabı Kalıcı Olarak Sil',
+      aciklama:
+          'DİKKAT!\n\n'
+          'Bu işlem geri alınamaz. Hesabınız ve '
+          'hesabınıza bağlı veriler kalıcı olarak silinecektir.\n\n'
+          'Devam etmek için mevcut şifrenizi girin.',
+      butonMetni:
+          'Kalıcı Olarak Sil',
+      butonRengi: Colors.red,
+    );
+
+    if (password == null) {
+      return;
+    }
+
+    if (!mounted) return;
+
+    final sonOnay =
+        await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          icon: const Icon(
+            Icons.warning_amber_rounded,
+            color: Colors.red,
+            size: 42,
+          ),
+          title: const Text(
+            'Son Onay',
+            textAlign:
+                TextAlign.center,
+          ),
+          content: const Text(
+            'Hesabınız tamamen silinecek '
+            've bu işlem geri alınamayacaktır.\n\n'
+            'Hesabınızı gerçekten silmek istiyor musunuz?',
+            textAlign:
+                TextAlign.center,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(
+                  dialogContext,
+                  false,
+                );
+              },
+              child: const Text(
+                'Vazgeç',
+              ),
+            ),
+            FilledButton(
+              style:
+                  FilledButton.styleFrom(
+                backgroundColor:
+                    Colors.red,
+                foregroundColor:
+                    Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(
+                  dialogContext,
+                  true,
+                );
+              },
+              child: const Text(
+                'Evet, Hesabımı Sil',
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (sonOnay != true) {
+      return;
+    }
+
+    setState(() {
+      _hesapSiliniyor = true;
+    });
+
+    try {
+      await _apiService.deleteAccount(
+        password: password,
+      );
+
+      await _authStorage
+          .clearCurrentPassword();
+
+      if (!mounted) return;
+
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/giris',
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      final mesaj = e
+          .toString()
+          .replaceFirst(
+            'Exception: ',
+            '',
+          );
+
+      setState(() {
+        _hesapSiliniyor = false;
+      });
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          content: Text(
+            mesaj,
+          ),
+        ),
+      );
+    }
+  }
+
+  // --------------------------------------------------
+  // ÇIKIŞ
+  // --------------------------------------------------
+
   Future<void> _cikisYap() async {
-    if (_cikisYapiliyor) return;
+    if (_cikisYapiliyor ||
+        _hesapDonduruluyor ||
+        _hesapSiliniyor) {
+      return;
+    }
 
     setState(() {
       _cikisYapiliyor = true;
@@ -340,6 +727,10 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
       );
     }
   }
+
+  // --------------------------------------------------
+  // ARAYÜZ
+  // --------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -390,7 +781,8 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
               snapshot.data ?? {};
 
           final id =
-              (user['id'] ?? '').toString();
+              (user['id'] ?? '')
+                  .toString();
 
           final ad =
               (user['name'] ??
@@ -406,7 +798,8 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                   .toString();
 
           final profilePhotoUrl =
-              (user['profile_photo_url'] ??
+              (user[
+                          'profile_photo_url'] ??
                       '')
                   .toString();
 
@@ -423,19 +816,26 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
           return RefreshIndicator(
             onRefresh: () async {
               _yenile();
+
               await _kullaniciFuture;
             },
             child: ListView(
               physics:
                   const AlwaysScrollableScrollPhysics(),
               padding:
-                  const EdgeInsets.all(20),
+                  const EdgeInsets.all(
+                20,
+              ),
               children: [
-                const SizedBox(height: 10),
+                const SizedBox(
+                  height: 10,
+                ),
 
+                // PROFİL FOTOĞRAFI
                 Center(
                   child: Stack(
-                    clipBehavior: Clip.none,
+                    clipBehavior:
+                        Clip.none,
                     children: [
                       Material(
                         shape:
@@ -454,19 +854,25 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                             child: fotografVar
                                 ? Image.network(
                                     profilePhotoUrl,
-                                    fit: BoxFit.cover,
+                                    fit:
+                                        BoxFit.cover,
                                     errorBuilder: (
                                       context,
                                       error,
                                       stackTrace,
                                     ) {
                                       return const ColoredBox(
-                                        color:
-                                            Color(0xFFE8EAF6),
-                                        child: Center(
-                                          child: Icon(
-                                            Icons.person,
-                                            size: 58,
+                                        color: Color(
+                                          0xFFE8EAF6,
+                                        ),
+                                        child:
+                                            Center(
+                                          child:
+                                              Icon(
+                                            Icons
+                                                .person,
+                                            size:
+                                                58,
                                           ),
                                         ),
                                       );
@@ -474,10 +880,14 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                                   )
                                 : const ColoredBox(
                                     color:
-                                        Color(0xFFE8EAF6),
-                                    child: Center(
+                                        Color(
+                                      0xFFE8EAF6,
+                                    ),
+                                    child:
+                                        Center(
                                       child: Icon(
-                                        Icons.person,
+                                        Icons
+                                            .person,
                                         size: 58,
                                       ),
                                     ),
@@ -503,14 +913,17 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                             },
                             child: Padding(
                               padding:
-                                  const EdgeInsets.all(
+                                  const EdgeInsets
+                                      .all(
                                 9,
                               ),
                               child:
                                   _fotografIslemiYapiliyor
                                       ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
+                                          width:
+                                              20,
+                                          height:
+                                              20,
                                           child:
                                               CircularProgressIndicator(
                                             strokeWidth:
@@ -518,8 +931,10 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                                           ),
                                         )
                                       : const Icon(
-                                          Icons.camera_alt_outlined,
-                                          size: 21,
+                                          Icons
+                                              .camera_alt_outlined,
+                                          size:
+                                              21,
                                         ),
                             ),
                           ),
@@ -529,7 +944,9 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(
+                  height: 16,
+                ),
 
                 Text(
                   ad,
@@ -543,7 +960,9 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                   ),
                 ),
 
-                const SizedBox(height: 5),
+                const SizedBox(
+                  height: 5,
+                ),
 
                 Text(
                   iletisim,
@@ -555,7 +974,9 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                   ),
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(
+                  height: 8,
+                ),
 
                 TextButton.icon(
                   onPressed:
@@ -567,7 +988,8 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                               );
                             },
                   icon: const Icon(
-                    Icons.camera_alt_outlined,
+                    Icons
+                        .camera_alt_outlined,
                   ),
                   label: Text(
                     fotografVar
@@ -576,14 +998,19 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                   ),
                 ),
 
-                const SizedBox(height: 22),
+                const SizedBox(
+                  height: 22,
+                ),
 
+                // HESAP BİLGİLERİ
                 Card(
                   child: Column(
                     children: [
                       ListTile(
-                        leading: const Icon(
-                          Icons.edit_outlined,
+                        leading:
+                            const Icon(
+                          Icons
+                              .edit_outlined,
                         ),
                         title:
                             const Text(
@@ -595,7 +1022,8 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                         ),
                         trailing:
                             const Icon(
-                          Icons.arrow_forward_ios,
+                          Icons
+                              .arrow_forward_ios,
                           size: 16,
                         ),
                         onTap:
@@ -607,8 +1035,10 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                       ),
 
                       ListTile(
-                        leading: const Icon(
-                          Icons.person_outline,
+                        leading:
+                            const Icon(
+                          Icons
+                              .person_outline,
                         ),
                         title:
                             const Text(
@@ -618,14 +1048,16 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                             Text(ad),
                       ),
 
-                      if (email.isNotEmpty) ...[
+                      if (email
+                          .isNotEmpty) ...[
                         const Divider(
                           height: 1,
                         ),
                         ListTile(
                           leading:
                               const Icon(
-                            Icons.email_outlined,
+                            Icons
+                                .email_outlined,
                           ),
                           title:
                               const Text(
@@ -636,14 +1068,16 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                         ),
                       ],
 
-                      if (phone.isNotEmpty) ...[
+                      if (phone
+                          .isNotEmpty) ...[
                         const Divider(
                           height: 1,
                         ),
                         ListTile(
                           leading:
                               const Icon(
-                            Icons.phone_outlined,
+                            Icons
+                                .phone_outlined,
                           ),
                           title:
                               const Text(
@@ -659,7 +1093,8 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                       ),
 
                       ListTile(
-                        leading: const Icon(
+                        leading:
+                            const Icon(
                           Icons.fingerprint,
                         ),
                         title:
@@ -675,8 +1110,10 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                       ),
 
                       ListTile(
-                        leading: const Icon(
-                          Icons.lock_outline,
+                        leading:
+                            const Icon(
+                          Icons
+                              .lock_outline,
                         ),
                         title:
                             const Text(
@@ -710,8 +1147,10 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                                     },
                                     icon: Icon(
                                       _sifreGorunuyor
-                                          ? Icons.visibility_off
-                                          : Icons.visibility,
+                                          ? Icons
+                                              .visibility_off
+                                          : Icons
+                                              .visibility,
                                     ),
                                   ),
                       ),
@@ -721,8 +1160,10 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                       ),
 
                       ListTile(
-                        leading: const Icon(
-                          Icons.password_outlined,
+                        leading:
+                            const Icon(
+                          Icons
+                              .password_outlined,
                         ),
                         title:
                             const Text(
@@ -730,7 +1171,8 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                         ),
                         trailing:
                             const Icon(
-                          Icons.arrow_forward_ios,
+                          Icons
+                              .arrow_forward_ios,
                           size: 16,
                         ),
                         onTap:
@@ -740,29 +1182,33 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(
+                  height: 24,
+                ),
 
+                // ÇIKIŞ YAP
                 SizedBox(
                   height: 50,
                   child:
                       OutlinedButton.icon(
                     onPressed:
-                        _cikisYapiliyor
+                        _cikisYapiliyor ||
+                                _hesapDonduruluyor ||
+                                _hesapSiliniyor
                             ? null
                             : _cikisYap,
-                    icon:
-                        _cikisYapiliyor
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child:
-                                    CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(
-                                Icons.logout,
-                              ),
+                    icon: _cikisYapiliyor
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child:
+                                CircularProgressIndicator(
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.logout,
+                          ),
                     label: Text(
                       _cikisYapiliyor
                           ? 'Çıkış Yapılıyor...'
@@ -771,7 +1217,138 @@ class _ProfilSayfasiState extends State<ProfilSayfasi> {
                   ),
                 ),
 
-                const SizedBox(height: 30),
+                const SizedBox(
+                  height: 14,
+                ),
+
+                // HESABI DONDUR
+                SizedBox(
+                  height: 50,
+                  child:
+                      OutlinedButton.icon(
+                    style:
+                        OutlinedButton
+                            .styleFrom(
+                      foregroundColor:
+                          Colors.orange
+                              .shade800,
+                      side: BorderSide(
+                        color: Colors
+                            .orange
+                            .shade700,
+                      ),
+                    ),
+                    onPressed:
+                        _hesapDonduruluyor ||
+                                _hesapSiliniyor ||
+                                _cikisYapiliyor
+                            ? null
+                            : _hesabiDondur,
+                    icon:
+                        _hesapDonduruluyor
+                            ? const SizedBox(
+                                width: 20,
+                                height:
+                                    20,
+                                child:
+                                    CircularProgressIndicator(
+                                  strokeWidth:
+                                      2,
+                                ),
+                              )
+                            : const Icon(
+                                Icons
+                                    .pause_circle_outline,
+                              ),
+                    label: Text(
+                      _hesapDonduruluyor
+                          ? 'Hesap Donduruluyor...'
+                          : 'Hesabı Dondur',
+                    ),
+                  ),
+                ),
+
+                const SizedBox(
+                  height: 10,
+                ),
+
+                const Text(
+                  'Hesabınızı dondurursanız 90 gün içinde '
+                  'tekrar giriş yaparak yeniden aktif edebilirsiniz.',
+                  textAlign:
+                      TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 12,
+                  ),
+                ),
+
+                const SizedBox(
+                  height: 18,
+                ),
+
+                // HESABI KALICI SİL
+                SizedBox(
+                  height: 50,
+                  child:
+                      OutlinedButton.icon(
+                    style:
+                        OutlinedButton
+                            .styleFrom(
+                      foregroundColor:
+                          Colors.red,
+                      side:
+                          const BorderSide(
+                        color: Colors.red,
+                      ),
+                    ),
+                    onPressed:
+                        _hesapSiliniyor ||
+                                _hesapDonduruluyor ||
+                                _cikisYapiliyor
+                            ? null
+                            : _hesabiSil,
+                    icon:
+                        _hesapSiliniyor
+                            ? const SizedBox(
+                                width: 20,
+                                height:
+                                    20,
+                                child:
+                                    CircularProgressIndicator(
+                                  strokeWidth:
+                                      2,
+                                ),
+                              )
+                            : const Icon(
+                                Icons
+                                    .delete_forever,
+                              ),
+                    label: Text(
+                      _hesapSiliniyor
+                          ? 'Hesap Siliniyor...'
+                          : 'Hesabı Kalıcı Olarak Sil',
+                    ),
+                  ),
+                ),
+
+                const SizedBox(
+                  height: 10,
+                ),
+
+                const Text(
+                  'Kalıcı silme işlemi geri alınamaz.',
+                  textAlign:
+                      TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontSize: 12,
+                  ),
+                ),
+
+                const SizedBox(
+                  height: 30,
+                ),
               ],
             ),
           );

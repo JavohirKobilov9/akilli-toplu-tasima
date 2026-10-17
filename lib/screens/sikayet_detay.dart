@@ -554,6 +554,32 @@ class _SikayetDetaySayfasiState extends State<SikayetDetaySayfasi> {
                           ),
                       ],
                     ),
+                    
+                    
+const SizedBox(height: 16),
+
+
+Row(
+  children: [
+    const Icon(
+      Icons.account_circle_outlined,
+      size: 20,
+      color: Colors.grey,
+    ),
+    const SizedBox(width: 8),
+    Expanded(
+      child: Text(
+        'Şikayet Sahibi: ${sikayet.kullaniciAdi}',
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    ),
+  ],
+),
+
+
                     const SizedBox(height: 10),
                     Text(
                       'Tarih: '

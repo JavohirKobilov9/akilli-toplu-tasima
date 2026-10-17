@@ -14,23 +14,29 @@ class AnaSayfa extends StatefulWidget {
 class _AnaSayfaState extends State<AnaSayfa> {
   int _seciliIndex = 0;
 
-  void _sayfaDegistir(int index) {
-    setState(() {
-      _seciliIndex = index;
-    });
+  Future<void> _sayfaDegistir(int index) async {
+    if (index == 0) {
+      setState(() {
+        _seciliIndex = 0;
+      });
+      return;
+    }
 
     if (index == 1) {
-      Navigator.pushNamed(
+      setState(() {
+        _seciliIndex = 1;
+      });
+
+      await Navigator.pushNamed(
         context,
         '/sikayetlerim',
       );
-    }
 
-    if (index == 2) {
-      Navigator.pushNamed(
-        context,
-        '/profil',
-      );
+      if (!mounted) return;
+
+      setState(() {
+        _seciliIndex = 0;
+      });
     }
   }
 
@@ -46,6 +52,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
         ),
         actions: [
           IconButton(
+            tooltip: 'Profil',
             onPressed: () {
               Navigator.pushNamed(
                 context,
@@ -217,26 +224,11 @@ class _AnaSayfaState extends State<AnaSayfa> {
             ),
 
             const SizedBox(height: 12),
-
-            // PROFİL
-            _MenuCard(
-              icon: Icons.person_outline,
-              title: 'Profil',
-              description:
-                  'Hesap bilgilerini görüntüle.',
-              onTap: () {
-                Navigator.pushNamed(
-                  context,
-                  '/profil',
-                );
-              },
-            ),
           ],
         ),
       ),
 
-      bottomNavigationBar:
-          NavigationBar(
+      bottomNavigationBar: NavigationBar(
         selectedIndex: _seciliIndex,
         onDestinationSelected:
             _sayfaDegistir,
@@ -254,13 +246,6 @@ class _AnaSayfaState extends State<AnaSayfa> {
             selectedIcon:
                 Icon(Icons.list_alt),
             label: 'Şikayetlerim',
-          ),
-          NavigationDestination(
-            icon:
-                Icon(Icons.person_outline),
-            selectedIcon:
-                Icon(Icons.person),
-            label: 'Profil',
           ),
         ],
       ),

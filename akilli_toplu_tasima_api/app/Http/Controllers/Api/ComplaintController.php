@@ -6,62 +6,78 @@ use App\Http\Controllers\Controller;
 use App\Models\Complaint;
 use App\Models\Line;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class ComplaintController extends Controller
 {
-    // Kullanıcının yalnızca kendi şikayetini silmesini sağlar.
-    public function destroy(
-        Request $request,
-        Complaint $complaint
-    ) {
-        if (
-            (int) $complaint->user_id !==
-            (int) $request->user()->id
-        ) {
+    // Kullanıcı yalnızca kendisine ait şikayeti silebilir.
+    public function destroy(Request $request, Complaint $complaint)
+    {
+        if ((int) $complaint->user_id !== (int) $request->user()->id) {
             return response()->json([
                 'success' => false,
-                'message' =>
-                    'Bu şikayeti silme yetkiniz yok.',
+                'message' => 'Bu şikayeti silme yetkiniz yok.',
             ], 403);
         }
 
+        $mediaPath = $complaint->media_path;
         $complaint->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' =>
-                'Şikayet başarıyla silindi.',
-        ]);
-    }
-
-    // Tüm şikayetleri getirir.
-    public function index()
-    {
-        $complaints = Complaint::with([
-            'line',
-            'stop',
-        ])
-            ->latest()
-            ->get();
+        if (is_string($mediaPath) && str_starts_with($mediaPath, 'complaints/')) {
+            Storage::disk('public')->delete($mediaPath);
+        }
 
         return response()->json([
             'success' => true,
-            'data' => $complaints,
+            'message' => 'Şikayet başarıyla silindi.',
         ]);
     }
 
-    // Giriş yapan kullanıcının şikayetlerini getirir.
+    
+public function index()
+{
+    $complaints = Complaint::with([
+        'line',
+        'stop',
+        'user:id,name',
+    ])
+        ->latest()
+        ->get();
+
+    $data = $complaints->map(function (Complaint $complaint) {
+        $item = $complaint->toArray();
+
+        if ($complaint->user_id === null) {
+            $item['user_display_name'] = 'Misafir Kullanıcı';
+        } else {
+            $item['user_display_name'] =
+                $complaint->user?->name ?? 'Silinmiş Kullanıcı';
+        }
+
+        // Kişisel iletişim bilgilerini topluluğa göndermiyoruz.
+        unset(
+            $item['user'],
+            $item['guest_email'],
+            $item['guest_phone'],
+            $item['guest_email_verified_at'],
+            $item['guest_phone_verified_at']
+        );
+
+        return $item;
+    });
+
+    return response()->json([
+        'success' => true,
+        'data' => $data,
+    ]);
+}
+
+
     public function myComplaints(Request $request)
     {
-        $complaints = Complaint::with([
-            'line',
-            'stop',
-        ])
-            ->where(
-                'user_id',
-                $request->user()->id
-            )
+        $complaints = Complaint::with(['line', 'stop'])
+            ->where('user_id', $request->user()->id)
             ->latest()
             ->get();
 
@@ -71,232 +87,171 @@ class ComplaintController extends Controller
         ]);
     }
 
-    // Yeni şikayet oluşturur.
+    // Giriş yapan kullanıcı için mevcut şikayet oluşturma adresi.
     public function store(Request $request)
     {
+        return $this->createComplaint($request, (int) $request->user()->id);
+    }
+
+    // Hem kayıtlı kullanıcı hem e-posta doğrulamış misafir için ortak kayıt işlemi.
+    // Misafir çağrısında userId null, guestEmail doğrulanmış e-posta olur.
+    protected function createComplaint(
+        Request $request,
+        ?int $userId,
+        ?string $guestEmail = null,
+        ?string $guestPhone = null
+    ) {
         $validated = $request->validate([
-            'title' =>
-                'required|string|max:255',
-            'category' =>
-                'required|string|max:100',
-            'description' =>
-                'required|string|min:10',
-            'line_id' =>
-                'required|integer|exists:lines,id',
-            'stop_id' =>
-                'nullable|integer|exists:stops,id',
-            'latitude' =>
-                'nullable|numeric|between:-90,90',
-            'longitude' =>
-                'nullable|numeric|between:-180,180',
+            'title' => 'required|string|max:255',
+            'category' => 'required|string|max:100',
+            'description' => 'required|string|min:10',
+            'line_id' => 'required|integer|exists:lines,id',
+            'stop_id' => 'nullable|integer|exists:stops,id',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'media' => 'nullable|file|mimes:jpg,jpeg,png,webp,heic,heif,mp4,mov,3gp|max:51200',
         ]);
 
-        // Başlığın ilk harfini büyütür.
-        $title = $this->formatTitle(
-            $validated['title']
-        );
+        $title = $this->formatTitle($validated['title']);
+        $description = trim($validated['description']);
 
-        // Açıklamanın başındaki ve sonundaki gereksiz boşlukları temizler.
-        $description = trim(
-            $validated['description']
-        );
-
-        // Başlık veya açıklamada yasaklı kelime/ifade varsa kaydetmez.
         if (
-            $this->containsForbiddenLanguage(
-                $title
-            ) ||
-            $this->containsForbiddenLanguage(
-                $description
-            )
+            $this->containsForbiddenLanguage($title) ||
+            $this->containsForbiddenLanguage($description)
         ) {
             return response()->json([
                 'success' => false,
-                'message' =>
-                    'Şikayet metninde uygun olmayan ifadeler bulunmaktadır. Lütfen metni düzenleyiniz.',
+                'message' => 'Şikayet metninde uygun olmayan ifadeler bulunmaktadır. Lütfen metni düzenleyiniz.',
             ], 422);
         }
 
-        $line = Line::findOrFail(
-            $validated['line_id']
-        );
-
-        // Durak seçildiyse, seçilen hatta ait olup olmadığını kontrol eder.
+        $line = Line::findOrFail($validated['line_id']);
         if (!empty($validated['stop_id'])) {
-            $stopBelongsToLine =
-                $line->stops()
-                    ->where(
-                        'stops.id',
-                        $validated['stop_id']
-                    )
-                    ->exists();
+            $stopBelongsToLine = $line->stops()
+                ->where('stops.id', $validated['stop_id'])
+                ->exists();
 
             if (!$stopBelongsToLine) {
                 throw ValidationException::withMessages([
-                    'stop_id' => [
-                        'Seçilen durak, seçilen hatta ait değildir.',
-                    ],
+                    'stop_id' => ['Seçilen durak, seçilen hatta ait değildir.'],
                 ]);
             }
         }
 
-        $complaint = Complaint::create([
-            'user_id' =>
-                $request->user()->id,
-            'title' =>
-                $title,
-            'category' =>
-                $validated['category'],
-            'description' =>
-                $description,
-            'line_id' =>
-                $validated['line_id'],
-            'stop_id' =>
-                $validated['stop_id'] ?? null,
-            'latitude' =>
-                $validated['latitude'] ?? null,
-            'longitude' =>
-                $validated['longitude'] ?? null,
-            'status' =>
-                'Beklemede',
-        ]);
+        $mediaPath = null;
+        $mediaType = null;
+        if ($request->hasFile('media')) {
+            $file = $request->file('media');
+            $mediaType = str_starts_with((string) $file->getMimeType(), 'video/')
+                ? 'video'
+                : 'photo';
 
-        $complaint->load([
-            'line',
-            'stop',
-        ]);
+            $mediaPath = $file->store('complaints', 'public');
+            if (!$mediaPath) {
+                throw ValidationException::withMessages([
+                    'media' => ['Medya dosyası yüklenemedi. Lütfen tekrar deneyin.'],
+                ]);
+            }
+        }
+
+        try {
+            $complaint = new Complaint();
+            $complaint->fill([
+                'user_id' => $userId,
+                'title' => $title,
+                'category' => $validated['category'],
+                'description' => $description,
+                'line_id' => $validated['line_id'],
+                'stop_id' => $validated['stop_id'] ?? null,
+                'latitude' => $validated['latitude'] ?? null,
+                'longitude' => $validated['longitude'] ?? null,
+                'status' => 'Beklemede',
+            ]);
+            // Model fillable alanlarına güvenmeden misafir bilgilerini açıkça ata.
+            $complaint->user_id = $userId;
+            $complaint->guest_email = $guestEmail;
+            $complaint->guest_email_verified_at = $guestEmail !== null ? now() : null;
+            $complaint->guest_phone = $guestPhone;
+            $complaint->guest_phone_verified_at = $guestPhone !== null ? now() : null;
+            $complaint->media_path = $mediaPath;
+            $complaint->media_type = $mediaType;
+            $complaint->save();
+        } catch (\Throwable $e) {
+            if ($mediaPath) {
+                Storage::disk('public')->delete($mediaPath);
+            }
+            throw $e;
+        }
+
+        $complaint->load(['line', 'stop']);
 
         return response()->json([
             'success' => true,
-            'message' =>
-                'Şikayet başarıyla oluşturuldu.',
+            'message' => 'Şikayet başarıyla oluşturuldu.',
             'data' => $complaint,
         ], 201);
     }
 
-    // Tek bir şikayeti getirir.
     public function show(Complaint $complaint)
     {
-        $complaint->load([
-            'line',
-            'stop',
-        ]);
-
+        $complaint->load(['line', 'stop']);
         return response()->json([
             'success' => true,
             'data' => $complaint,
         ]);
     }
 
-    // Şikayet durumunu günceller.
-    public function updateStatus(
-        Request $request,
-        Complaint $complaint
-    ) {
+    public function updateStatus(Request $request, Complaint $complaint)
+    {
         $validated = $request->validate([
-            'status' =>
-                'required|in:Beklemede,İnceleniyor,Çözüldü',
+            'status' => 'required|in:Beklemede,İnceleniyor,Çözüldü',
         ]);
 
         $complaint->update([
-            'status' =>
-                $validated['status'],
+            'status' => $validated['status'],
         ]);
-
-        $complaint->load([
-            'line',
-            'stop',
-        ]);
+        $complaint->load(['line', 'stop']);
 
         return response()->json([
             'success' => true,
-            'message' =>
-                'Şikayet durumu güncellendi.',
+            'message' => 'Şikayet durumu güncellendi.',
             'data' => $complaint,
         ]);
     }
 
-    // Küfür/hakaret kontrolü için metni standartlaştırır.
-    // Bu işlem kullanıcının kaydedilecek metnini değiştirmez.
-    private function normalizeText(
-        string $text
-    ): string {
-        $text = mb_strtolower(
-            $text,
-            'UTF-8'
-        );
-
+    private function normalizeText(string $text): string
+    {
+        $text = mb_strtolower($text, 'UTF-8');
         $text = str_replace(
             ['ç', 'ğ', 'ı', 'ö', 'ş', 'ü'],
             ['c', 'g', 'i', 'o', 's', 'u'],
             $text
         );
-
-        // Noktalama işaretlerini boşluğa çevirir.
-        $text = preg_replace(
-            '/[^a-z0-9\s]/u',
-            ' ',
-            $text
-        );
-
-        // Birden fazla boşluğu tek boşluğa indirir.
-        $text = preg_replace(
-            '/\s+/',
-            ' ',
-            $text
-        );
-
+        $text = preg_replace('/[^a-z0-9\s]/u', ' ', $text);
+        $text = preg_replace('/\s+/u', ' ', $text);
         return trim($text);
     }
 
-    // config/profanity.php içindeki yasaklı kelime ve ifadeleri kontrol eder.
-    private function containsForbiddenLanguage(
-        string $text
-    ): bool {
-        $normalizedText =
-            $this->normalizeText($text);
+    private function containsForbiddenLanguage(string $text): bool
+    {
+        $normalizedText = $this->normalizeText($text);
+        $searchableText = ' ' . $normalizedText . ' ';
 
-        $searchableText =
-            ' ' . $normalizedText . ' ';
-
-        foreach (
-            config('profanity.words', [])
-            as $forbiddenWord
-        ) {
-            $normalizedForbidden =
-                $this->normalizeText(
-                    $forbiddenWord
-                );
-
+        foreach (config('profanity.words', []) as $forbiddenWord) {
+            $normalizedForbidden = $this->normalizeText($forbiddenWord);
             if ($normalizedForbidden === '') {
                 continue;
             }
-
-            $searchableForbidden =
-                ' ' .
-                $normalizedForbidden .
-                ' ';
-
-            if (
-                str_contains(
-                    $searchableText,
-                    $searchableForbidden
-                )
-            ) {
+            if (str_contains($searchableText, ' ' . $normalizedForbidden . ' ')) {
                 return true;
             }
         }
-
         return false;
     }
 
-    // Başlıktaki ilk harfi Türkçe karakterleri de dikkate alarak büyütür.
-    // Başlığın geri kalanına dokunmaz.
-    private function formatTitle(
-        string $title
-    ): string {
+    private function formatTitle(string $title): string
+    {
         $title = trim($title);
-
         if ($title === '') {
             return $title;
         }
@@ -304,9 +259,7 @@ class ComplaintController extends Controller
         return preg_replace_callback(
             '/\p{L}/u',
             function ($matches) {
-                $firstLetter =
-                    $matches[0];
-
+                $firstLetter = $matches[0];
                 $turkishUppercase = [
                     'i' => 'İ',
                     'ı' => 'I',
@@ -316,14 +269,8 @@ class ComplaintController extends Controller
                     'ö' => 'Ö',
                     'ç' => 'Ç',
                 ];
-
-                return $turkishUppercase[
-                    $firstLetter
-                ] ??
-                    mb_strtoupper(
-                        $firstLetter,
-                        'UTF-8'
-                    );
+                return $turkishUppercase[$firstLetter]
+                    ?? mb_strtoupper($firstLetter, 'UTF-8');
             },
             $title,
             1
