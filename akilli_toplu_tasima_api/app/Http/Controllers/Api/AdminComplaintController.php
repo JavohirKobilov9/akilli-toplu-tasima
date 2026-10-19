@@ -41,6 +41,10 @@ class AdminComplaintController extends Controller
                 'title' => $complaint->title,
                 'category' => $complaint->category,
                 'description' => $complaint->description,
+                'media_path' => $complaint->media_path,
+                'media_type' => $complaint->media_type,
+                'latitude' => $complaint->latitude,
+                'longitude' => $complaint->longitude,
 
                 'line' => $complaint->line
                     ? [

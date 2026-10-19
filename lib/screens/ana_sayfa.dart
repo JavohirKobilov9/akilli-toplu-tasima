@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'dart:async';
+
+import '../services/api_service.dart';
+import '../services/push_notification_service.dart';
+
 import 'harita.dart';
 import 'sefer_saatleri.dart';
 import 'topluluk_sikayetleri.dart';
@@ -11,8 +16,58 @@ class AnaSayfa extends StatefulWidget {
   State<AnaSayfa> createState() => _AnaSayfaState();
 }
 
-class _AnaSayfaState extends State<AnaSayfa> {
+class _AnaSayfaState extends State<AnaSayfa> with WidgetsBindingObserver {
   int _seciliIndex = 0;
+  int _unreadCount = 0;
+  bool _checkingNotifications = false;
+  Timer? _notificationTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    PushNotificationService.instance.changes.addListener(_refreshNotifications);
+    _refreshNotifications();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) PushNotificationService.instance.start();
+    });
+    _notificationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+        _refreshNotifications();
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshNotifications();
+      PushNotificationService.instance.start();
+    }
+  }
+
+  Future<void> _refreshNotifications() async {
+    if (_checkingNotifications) return;
+    _checkingNotifications = true;
+    try {
+      final result = await ApiService().getNotifications();
+      if (mounted) setState(() => _unreadCount = result['unread_count'] as int);
+    } catch (_) {
+      // Liste ekranı bağlantı hatasında yeniden deneme sunar.
+    } finally {
+      _checkingNotifications = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _notificationTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    PushNotificationService.instance.changes.removeListener(
+      _refreshNotifications,
+    );
+    super.dispose();
+  }
 
   Future<void> _sayfaDegistir(int index) async {
     if (index == 0) {
@@ -27,10 +82,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
         _seciliIndex = 1;
       });
 
-      await Navigator.pushNamed(
-        context,
-        '/sikayetlerim',
-      );
+      await Navigator.pushNamed(context, '/sikayetlerim');
 
       if (!mounted) return;
 
@@ -46,22 +98,27 @@ class _AnaSayfaState extends State<AnaSayfa> {
       appBar: AppBar(
         title: const Text(
           'Akıllı Toplu Taşıma',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
+            tooltip: 'Bildirimler',
+            onPressed: () async {
+              await Navigator.pushNamed(context, '/bildirimler');
+              if (mounted) _refreshNotifications();
+            },
+            icon: Badge(
+              isLabelVisible: _unreadCount > 0,
+              label: Text(_unreadCount > 99 ? '99+' : '$_unreadCount'),
+              child: const Icon(Icons.notifications_outlined),
+            ),
+          ),
+          IconButton(
             tooltip: 'Profil',
             onPressed: () {
-              Navigator.pushNamed(
-                context,
-                '/profil',
-              );
+              Navigator.pushNamed(context, '/profil');
             },
-            icon: const Icon(
-              Icons.person_outline,
-            ),
+            icon: const Icon(Icons.person_outline),
           ),
         ],
       ),
@@ -69,26 +126,19 @@ class _AnaSayfaState extends State<AnaSayfa> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.indigo,
-                borderRadius:
-                    BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(24),
               ),
               child: const Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.directions_bus,
-                    size: 48,
-                    color: Colors.white,
-                  ),
+                  Icon(Icons.directions_bus, size: 48, color: Colors.white),
 
                   SizedBox(height: 16),
 
@@ -98,8 +148,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 23,
-                      fontWeight:
-                          FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
 
@@ -109,10 +158,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                     'Yaşadığın sorunları bildir, '
                     'şehir içi ulaşımın '
                     'geliştirilmesine katkı sağla.',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 15,
-                    ),
+                    style: TextStyle(color: Colors.white70, fontSize: 15),
                   ),
                 ],
               ),
@@ -122,26 +168,18 @@ class _AnaSayfaState extends State<AnaSayfa> {
 
             const Text(
               'Ne yapmak istiyorsun?',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 16),
 
             // ŞİKAYET OLUŞTUR
             _MenuCard(
-              icon:
-                  Icons.report_problem_outlined,
+              icon: Icons.report_problem_outlined,
               title: 'Şikayet Oluştur',
-              description:
-                  'Yaşadığın ulaşım sorununu bildir.',
+              description: 'Yaşadığın ulaşım sorununu bildir.',
               onTap: () {
-                Navigator.pushNamed(
-                  context,
-                  '/sikayet-olustur',
-                );
+                Navigator.pushNamed(context, '/sikayet-olustur');
               },
             ),
 
@@ -155,10 +193,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                   'Sadece kendi gönderdiğin '
                   'şikayetleri görüntüle.',
               onTap: () {
-                Navigator.pushNamed(
-                  context,
-                  '/sikayetlerim',
-                );
+                Navigator.pushNamed(context, '/sikayetlerim');
               },
             ),
 
@@ -176,8 +211,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        const ToplulukSikayetleriSayfasi(),
+                    builder: (context) => const ToplulukSikayetleriSayfasi(),
                   ),
                 );
               },
@@ -196,8 +230,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        const SeferSaatleriSayfasi(),
+                    builder: (context) => const SeferSaatleriSayfasi(),
                   ),
                 );
               },
@@ -215,10 +248,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        const HaritaScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const HaritaScreen()),
                 );
               },
             ),
@@ -230,21 +260,16 @@ class _AnaSayfaState extends State<AnaSayfa> {
 
       bottomNavigationBar: NavigationBar(
         selectedIndex: _seciliIndex,
-        onDestinationSelected:
-            _sayfaDegistir,
+        onDestinationSelected: _sayfaDegistir,
         destinations: const [
           NavigationDestination(
-            icon:
-                Icon(Icons.home_outlined),
-            selectedIcon:
-                Icon(Icons.home),
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
             label: 'Ana Sayfa',
           ),
           NavigationDestination(
-            icon:
-                Icon(Icons.list_alt_outlined),
-            selectedIcon:
-                Icon(Icons.list_alt),
+            icon: Icon(Icons.list_alt_outlined),
+            selectedIcon: Icon(Icons.list_alt),
             label: 'Şikayetlerim',
           ),
         ],
@@ -253,8 +278,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
   }
 }
 
-class _MenuCard
-    extends StatelessWidget {
+class _MenuCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String description;
@@ -268,76 +292,50 @@ class _MenuCard
   });
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Card(
       elevation: 0,
       child: InkWell(
         onTap: onTap,
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding:
-              const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(18),
           child: Row(
             children: [
               Container(
-                padding:
-                    const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color:
-                      Colors.indigo.withValues(
-                    alpha: 0.1,
-                  ),
-                  borderRadius:
-                      BorderRadius.circular(
-                    14,
-                  ),
+                  color: Colors.indigo.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(
-                  icon,
-                  color: Colors.indigo,
-                  size: 30,
-                ),
+                child: Icon(icon, color: Colors.indigo, size: 30),
               ),
 
               const SizedBox(width: 16),
 
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      style:
-                          const TextStyle(
-                        fontWeight:
-                            FontWeight.bold,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
                         fontSize: 17,
                       ),
                     ),
 
-                    const SizedBox(
-                      height: 4,
-                    ),
+                    const SizedBox(height: 4),
 
                     Text(
                       description,
-                      style:
-                          const TextStyle(
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(color: Colors.grey),
                     ),
                   ],
                 ),
               ),
 
-              const Icon(
-                Icons.arrow_forward_ios,
-                size: 18,
-              ),
+              const Icon(Icons.arrow_forward_ios, size: 18),
             ],
           ),
         ),

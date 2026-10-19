@@ -4,13 +4,33 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Complaint;
+use App\Models\ComplaintNotification;
 use App\Models\Line;
+use App\Services\FirebasePushService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class ComplaintController extends Controller
 {
+    public function media(Request $request, Complaint $complaint)
+    {
+        if (!$request->user()->isAdmin() && (int) $complaint->user_id !== (int) $request->user()->id) {
+            return response()->json(['message' => 'Bu dosyayı yalnızca şikayet sahibi ve yöneticiler görüntüleyebilir.'], 403);
+        }
+        $path = $complaint->media_path;
+        if (!is_string($path) || !str_starts_with($path, 'complaints/') ||
+            preg_match('~(^|/)\.\.?(/|$)|\\\\~', $path) || !Storage::disk('public')->exists($path)) {
+            abort(404);
+        }
+
+        return response()->file(Storage::disk('public')->path($path), [
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ])->setPrivate();
+    }
+
     // Kullanıcı yalnızca kendisine ait şikayeti silebilir.
     public function destroy(Request $request, Complaint $complaint)
     {
@@ -207,9 +227,30 @@ public function index()
             'status' => 'required|in:Beklemede,İnceleniyor,Çözüldü',
         ]);
 
-        $complaint->update([
-            'status' => $validated['status'],
-        ]);
+        $notification = DB::transaction(function () use ($complaint, $validated) {
+            // Aynı anda gelen güncellemelerde ve tekrar kaydetmede mükerrer bildirim üretme.
+            $current = Complaint::whereKey($complaint->id)->lockForUpdate()->firstOrFail();
+            if ($current->status === $validated['status']) {
+                return null;
+            }
+            $current->update(['status' => $validated['status']]);
+            if ($current->user_id === null) {
+                return null;
+            }
+
+            return ComplaintNotification::create([
+                'user_id' => $current->user_id,
+                'complaint_id' => $current->id,
+                'title' => 'Şikayetinizin durumu güncellendi',
+                'message' => '“' . $current->title . '” başlıklı şikayetiniz: ' . $current->status . '.',
+                'status' => $current->status,
+            ]);
+        });
+        // Bildirim kaydı kalıcıdır. Push hatası durum güncellemesini geri almaz.
+        if ($notification !== null) {
+            app(FirebasePushService::class)->send($notification);
+        }
+        $complaint->refresh();
         $complaint->load(['line', 'stop']);
 
         return response()->json([

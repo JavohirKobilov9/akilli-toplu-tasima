@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 
 import '../models/sikayet.dart';
 import '../services/api_service.dart';
+import '../widgets/complaint_media.dart';
+import 'sikayet_konum.dart';
 import 'yardimci_yoneticiler.dart';
 
 class AdminAnaSayfa extends StatefulWidget {
@@ -550,6 +552,15 @@ if (sikayet.kullaniciTelefon != null)
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      ComplaintMedia(complaint: sikayet),
+                      if (sikayet.latitude != null && sikayet.longitude != null)
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.push(context, MaterialPageRoute<void>(
+                            builder: (_) => SikayetKonumSayfasi(latitude: sikayet.latitude!, longitude: sikayet.longitude!),
+                          )),
+                          icon: const Icon(Icons.location_on_outlined),
+                          label: const Text('Şikayet Konumunu Göster'),
+                        ),
                       Text(
                         'Şikayet Durumunu Değiştir',
                         style: Theme.of(context).textTheme.titleMedium,

@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\LineController;
 use App\Http\Controllers\Api\SuperAdminController;
 use App\Http\Controllers\Api\AdminComplaintController;
 use App\Http\Controllers\Api\GuestComplaintController;
+use App\Http\Controllers\Api\NotificationController;
 
 // ----------------------------------------------------
 // AUTH - Giriş gerektirmeyen işlemler
@@ -94,6 +95,13 @@ Route::get('/lines/{line}/schedules', [
 // ----------------------------------------------------
 
 Route::middleware('auth:sanctum')->group(function () {
+
+    Route::get('/complaints/{complaint}/media', [ComplaintController::class, 'media']);
+
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'read']);
+    Route::post('/push-devices', [NotificationController::class, 'registerDevice']);
+    Route::delete('/push-devices', [NotificationController::class, 'removeDevice']);
 
     // Kullanıcı bilgisi
     Route::get('/me', [

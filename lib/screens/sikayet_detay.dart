@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/complaint_comment.dart';
 import '../models/sikayet.dart';
 import '../services/api_service.dart';
+import '../widgets/complaint_media.dart';
 
 class SikayetDetaySayfasi extends StatefulWidget {
   final Sikayet sikayet;
@@ -595,6 +596,7 @@ Row(
                 ),
               ),
             ),
+            ComplaintMedia(complaint: sikayet),
             const SizedBox(height: 24),
             const Row(
               children: [

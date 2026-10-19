@@ -1,4 +1,3 @@
-
 class Sikayet {
   final int id;
   final String baslik;
@@ -18,6 +17,41 @@ class Sikayet {
 
   final double? latitude;
   final double? longitude;
+  final String? mediaPath;
+  final String? mediaType;
+
+  bool get hasMedia => mediaPath?.trim().isNotEmpty == true;
+
+  bool get isVideo =>
+      mediaType == 'video' ||
+      (mediaType == null &&
+          RegExp(
+            r'\.(mp4|mov|3gp)$',
+            caseSensitive: false,
+          ).hasMatch(mediaPath ?? ''));
+
+  Uri? mediaUri(Uri apiBase) {
+    final path = mediaPath?.trim();
+    if (path == null || !path.startsWith('complaints/')) return null;
+    final segments = path.split('/');
+    if (segments.any(
+      (segment) =>
+          segment.isEmpty ||
+          segment == '.' ||
+          segment == '..' ||
+          segment.contains('\\'),
+    )) {
+      return null;
+    }
+    if (id <= 0) return null;
+    // Dosya oturum başlığıyla korumalı API'den alınır; herkese açık storage bağlantısı kullanılmaz.
+    final apiPath = apiBase.path.replaceFirst(RegExp(r'/+$'), '');
+    return apiBase.replace(
+      path: '$apiPath/complaints/$id/media',
+      query: null,
+      fragment: null,
+    );
+  }
 
   Sikayet({
     required this.id,
@@ -34,45 +68,38 @@ class Sikayet {
     this.misafirMi = false,
     this.latitude,
     this.longitude,
+    this.mediaPath,
+    this.mediaType,
   });
 
-  factory Sikayet.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory Sikayet.fromJson(Map<String, dynamic> json) {
     String hatAdi = 'Hat bilgisi yok';
     String durakAdi = 'Durak bilgisi yok';
 
     if (json['line'] is Map<String, dynamic>) {
-      final line =
-          json['line'] as Map<String, dynamic>;
+      final line = json['line'] as Map<String, dynamic>;
 
-      final code =
-          line['code']?.toString() ?? '';
-      final name =
-          line['name']?.toString() ?? '';
+      final code = line['code']?.toString() ?? '';
+      final name = line['name']?.toString() ?? '';
 
       if (code.isNotEmpty && name.isNotEmpty) {
         hatAdi = '$code - $name';
       } else if (code.isNotEmpty) {
         hatAdi = code;
       }
-    } else if (json['line'] is String &&
-        (json['line'] as String).isNotEmpty) {
+    } else if (json['line'] is String && (json['line'] as String).isNotEmpty) {
       hatAdi = json['line'];
     }
 
     if (json['stop'] is Map<String, dynamic>) {
-      final stop =
-          json['stop'] as Map<String, dynamic>;
+      final stop = json['stop'] as Map<String, dynamic>;
 
-      final name =
-          stop['name']?.toString() ?? '';
+      final name = stop['name']?.toString() ?? '';
 
       if (name.isNotEmpty) {
         durakAdi = name;
       }
-    } else if (json['stop'] is String &&
-        (json['stop'] as String).isNotEmpty) {
+    } else if (json['stop'] is String && (json['stop'] as String).isNotEmpty) {
       durakAdi = json['stop'];
     }
 
@@ -85,10 +112,7 @@ class Sikayet {
     return Sikayet(
       id: json['id'] is int
           ? json['id'] as int
-          : int.tryParse(
-                json['id']?.toString() ?? '',
-              ) ??
-              0,
+          : int.tryParse(json['id']?.toString() ?? '') ?? 0,
       baslik: json['title']?.toString() ?? '',
       kategori: json['category']?.toString() ?? '',
       aciklama: json['description']?.toString() ?? '',
@@ -96,26 +120,19 @@ class Sikayet {
       durak: durakAdi,
       durum: json['status']?.toString() ?? 'Beklemede',
       tarih: json['created_at'] != null
-          ? DateTime.tryParse(
-                json['created_at'].toString(),
-              ) ??
-              DateTime.now()
+          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : DateTime.now(),
-      kullaniciAdi:
-          json['user_display_name']?.toString() ??
-              'Kullanıcı',
+      kullaniciAdi: json['user_display_name']?.toString() ?? 'Kullanıcı',
       kullaniciEmail: nullableText(json['user_email']),
       kullaniciTelefon: nullableText(json['user_phone']),
       misafirMi: json['is_guest'] == true,
+      mediaPath: nullableText(json['media_path']),
+      mediaType: nullableText(json['media_type']),
       latitude: json['latitude'] != null
-          ? double.tryParse(
-              json['latitude'].toString(),
-            )
+          ? double.tryParse(json['latitude'].toString())
           : null,
       longitude: json['longitude'] != null
-          ? double.tryParse(
-              json['longitude'].toString(),
-            )
+          ? double.tryParse(json['longitude'].toString())
           : null,
     );
   }
@@ -133,6 +150,8 @@ class Sikayet {
       'user_display_name': kullaniciAdi,
       'latitude': latitude,
       'longitude': longitude,
+      'media_path': mediaPath,
+      'media_type': mediaType,
     };
   }
 }

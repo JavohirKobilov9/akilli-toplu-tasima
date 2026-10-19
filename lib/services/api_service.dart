@@ -16,6 +16,43 @@ import '../models/stop.dart';
 
 class ApiService {
 
+  Future<Map<String, dynamic>> getNotifications({int page = 1}) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/notifications?page=$page'),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer ${await getToken()}'},
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Bildirimler alınamadı. Lütfen tekrar deneyin.');
+    }
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  Future<void> markNotificationRead(int id) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl/notifications/$id/read'),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer ${await getToken()}'},
+    );
+    if (response.statusCode != 200) throw Exception('Bildirim güncellenemedi.');
+  }
+
+  Future<Sikayet> getComplaint(int id) async {
+    final response = await http.get(Uri.parse('$baseUrl/complaints/$id'), headers: {'Accept': 'application/json'});
+    if (response.statusCode == 404) throw Exception('Bu şikayet artık mevcut değil.');
+    if (response.statusCode != 200) throw Exception('Şikayet alınamadı.');
+    return Sikayet.fromJson(jsonDecode(response.body)['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> registerPushDevice(String deviceToken) async {
+    final token = await getToken();
+    if (token == null) return;
+    final response = await http.post(
+      Uri.parse('$baseUrl/push-devices'),
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+      body: jsonEncode({'token': deviceToken}),
+    );
+    if (response.statusCode != 200) throw Exception('Telefon bildirim kaydı yapılamadı.');
+  }
+
   final String baseUrl = 'http://10.0.2.2:8000/api';
 
   Future<Map<String, dynamic>> uploadProfilePhoto(

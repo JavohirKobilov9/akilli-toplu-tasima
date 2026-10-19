@@ -10,8 +10,12 @@ import 'screens/sikayetlerim.dart';
 import 'screens/profil.dart';
 import 'screens/sifre_degistir.dart';
 import 'services/api_service.dart';
+import 'services/push_notification_service.dart';
+import 'screens/bildirimler.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await PushNotificationService.instance.initialize();
   runApp(const AkilliTopluTasimaApp());
 }
 
@@ -21,6 +25,7 @@ class AkilliTopluTasimaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: PushNotificationService.navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'Akıllı Toplu Taşıma',
       theme: ThemeData(
@@ -30,18 +35,16 @@ class AkilliTopluTasimaApp extends StatelessWidget {
       ),
       home: const OturumKontrolSayfasi(),
       routes: {
+        '/bildirimler': (context) => const BildirimlerSayfasi(),
         '/giris': (context) => const GirisSayfasi(),
         '/kayit': (context) => const KayitSayfasi(),
         '/ana': (context) => const AnaSayfa(),
         '/admin': (context) => const AdminAnaSayfa(),
-        '/sikayet-olustur': (context) =>
-            const SikayetOlusturSayfasi(),
+        '/sikayet-olustur': (context) => const SikayetOlusturSayfasi(),
         '/sikayetlerim': (context) => const SikayetlerimSayfasi(),
         '/profil': (context) => const ProfilSayfasi(),
-        '/sifremi-unuttum': (context) =>
-            const SifremiUnuttumSayfasi(),
-        '/sifre-degistir': (context) =>
-            const SifreDegistirSayfasi(),
+        '/sifremi-unuttum': (context) => const SifremiUnuttumSayfasi(),
+        '/sifre-degistir': (context) => const SifreDegistirSayfasi(),
       },
     );
   }
@@ -51,12 +54,10 @@ class OturumKontrolSayfasi extends StatefulWidget {
   const OturumKontrolSayfasi({super.key});
 
   @override
-  State<OturumKontrolSayfasi> createState() =>
-      _OturumKontrolSayfasiState();
+  State<OturumKontrolSayfasi> createState() => _OturumKontrolSayfasiState();
 }
 
-class _OturumKontrolSayfasiState
-    extends State<OturumKontrolSayfasi> {
+class _OturumKontrolSayfasiState extends State<OturumKontrolSayfasi> {
   final ApiService _apiService = ApiService();
 
   late final Future<String?> _oturumKontrol;
@@ -88,11 +89,7 @@ class _OturumKontrolSayfasiState
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.directions_bus,
-                    size: 70,
-                    color: Colors.indigo,
-                  ),
+                  Icon(Icons.directions_bus, size: 70, color: Colors.indigo),
                   SizedBox(height: 20),
                   CircularProgressIndicator(),
                   SizedBox(height: 15),
