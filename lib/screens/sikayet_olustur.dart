@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/line.dart';
 import '../models/stop.dart';
 import '../services/api_service.dart';
+import '../services/draft_service.dart';
 
 
 
@@ -275,8 +276,9 @@ class _SikayetOlusturSayfasiState
     final fotograf =
         await _imagePicker.pickImage(
       source: source,
-      imageQuality: 80,
-      maxWidth: 1600,
+      imageQuality: 85,
+      maxWidth: 800,
+      maxHeight: 800,
     );
 
     if (fotograf == null || !mounted) {
@@ -461,6 +463,35 @@ void _medyayiKaldir() {
       }
     } catch (e) {
       if (!mounted) return;
+
+      // İnternet yoksa şikayet kaybolmasın: taslak olarak cihaza kaydedilir.
+      if (DraftService.isNetworkError(e)) {
+        await DraftService().save(
+          ComplaintDraft(
+            id: DateTime.now().microsecondsSinceEpoch.toString(),
+            baslik: _baslikController.text.trim(),
+            kategori: _secilenKategori!,
+            aciklama: _aciklamaController.text.trim(),
+            lineId: _secilenHat!.id,
+            stopId: _secilenDurak?.id,
+            latitude: _latitude,
+            longitude: _longitude,
+            mediaPath: _secilenMedya?.path,
+            createdAt: DateTime.now(),
+          ),
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'İnternet yok. Şikayetiniz taslak olarak kaydedildi; '
+              'bağlantı gelince Şikayetlerim ekranından gönderebilirsiniz.',
+            ),
+          ),
+        );
+        Navigator.pop(context, true);
+        return;
+      }
 
       final mesaj = e
           .toString()

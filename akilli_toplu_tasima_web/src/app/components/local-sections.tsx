@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ArrowUpRight, BusFront, Check, Heart, Map, MapPin, MessageCircle, Plus } from "lucide-react";
+import { ArrowUpRight, BusFront, Check, Heart, MapPin, MessageCircle, Plus } from "lucide-react";
+import LiveMap from "./live-map";
 import styles from "./local-sections.module.css";
 
 // Hakkımızda fotoğrafı: kendi fotoğrafını public/images içine koyup bu yolu değiştir.
@@ -61,11 +62,7 @@ export function NeighborhoodMap() {
       <p>Duraklar, güzergâhlar ve yolcu notları.<br />Şehrin ulaşımını bir arada görmek için yeni bir alan.</p>
       <div className={styles.neighborhoods} aria-label="Mahalleler">{stops.map((stop, i) => <span key={stop}>{i === 1 && <MapPin size={12} />}{stop}</span>)}</div>
     </div>
-    <div className={styles.mapSoon}>
-      <span className={styles.mapSoonIcon}><Map size={34} strokeWidth={1.4} /></span>
-      <h3>Harita alanı yakında burada.</h3>
-      <p>Duraklar ve güzergâhlar çok yakında bu alanda olacak.</p>
-    </div>
+    <LiveMap />
   </section>;
 }
 

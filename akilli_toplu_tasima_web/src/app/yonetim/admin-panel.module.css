@@ -1,0 +1,77 @@
+/* Renkler ana sayfayla aynı: mavi #2465c7, lacivert #142c4d, amber #ffb23f, yeşil #2c8a6e, kâğıt #f7f6f1 */
+.page { min-height: 100vh; background: #f7f6f1; color: #142c4d; padding: 24px clamp(16px, 4vw, 48px) 48px; font-family: Arial, sans-serif; }
+.kicker { font-size: 12px; letter-spacing: .12em; color: #2465c7; font-weight: 700; }
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.top h1 { margin: 4px 0 0; font-size: 28px; }
+.who { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.who small { color: #5b6b82; }
+.ghost { border: 1px solid #c9d3e3; background: #fff; color: #142c4d; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: 14px; }
+.ghost:disabled { opacity: .45; cursor: default; }
+.error { background: #fdecea; color: #a5281e; border: 1px solid #f3c1bb; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 14px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+.stat { background: #fff; border-radius: 12px; padding: 16px 18px; border-left: 5px solid #2465c7; display: flex; flex-direction: column; gap: 4px; }
+.stat b { font-size: 30px; }
+.stat span { color: #5b6b82; font-size: 14px; }
+.s0 { border-left-color: #ffb23f; }
+.s1 { border-left-color: #2465c7; }
+.s2 { border-left-color: #2c8a6e; }
+.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.card { background: #fff; border-radius: 12px; padding: 16px 18px; }
+.card h2 { margin: 0 0 12px; font-size: 16px; }
+.barRow { display: grid; grid-template-columns: minmax(90px, 40%) 1fr 32px; gap: 10px; align-items: center; font-size: 13px; margin: 6px 0; }
+.barRow span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.barRow b { text-align: right; }
+.bar { background: #e9eef6; border-radius: 6px; height: 10px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: #2465c7; border-radius: 6px; }
+.muted { color: #5b6b82; font-size: 14px; }
+.filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.filters input, .filters select { padding: 9px 12px; border: 1px solid #c9d3e3; border-radius: 8px; background: #fff; font-size: 14px; color: #142c4d; }
+.filters input { flex: 1 1 240px; }
+.tableWrap { background: #fff; border-radius: 12px; overflow-x: auto; }
+.tableWrap table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tableWrap th { text-align: left; padding: 12px 14px; background: #eef2f8; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #5b6b82; }
+.tableWrap td { padding: 11px 14px; border-top: 1px solid #edf0f5; vertical-align: top; }
+.row { cursor: pointer; }
+.row:hover { background: #f5f8fd; }
+.empty { text-align: center; color: #5b6b82; padding: 28px; }
+.status { border-radius: 999px; border: 1px solid #c9d3e3; padding: 5px 10px; font-size: 13px; background: #fff; color: #142c4d; cursor: pointer; }
+.status.s0 { background: #fff4de; border-color: #ffb23f; }
+.status.s1 { background: #e7effc; border-color: #2465c7; }
+.status.s2 { background: #e3f3ed; border-color: #2c8a6e; }
+.detail { background: #fafbfd; }
+.detailGrid { display: grid; grid-template-columns: 1fr minmax(0, 320px); gap: 20px; }
+.detailGrid p { margin: 0 0 12px; line-height: 1.5; }
+.detailGrid dl { display: grid; grid-template-columns: 90px 1fr; gap: 4px 10px; margin: 0; font-size: 13px; }
+.detailGrid dt { color: #5b6b82; }
+.detailGrid dd { margin: 0; }
+.media img, .media video { width: 100%; border-radius: 10px; max-height: 280px; object-fit: contain; background: #142c4d0d; }
+.pager { display: flex; justify-content: center; align-items: center; gap: 14px; margin-top: 14px; font-size: 14px; }
+
+.loginWrap { min-height: 100vh; display: grid; place-items: center; background: #142c4d; padding: 16px; font-family: Arial, sans-serif; }
+.loginCard { background: #f7f6f1; border-radius: 16px; padding: 32px; width: min(100%, 400px); display: flex; flex-direction: column; gap: 14px; color: #142c4d; }
+.loginCard h1 { margin: 0; font-size: 26px; }
+.loginCard p { margin: 0; color: #5b6b82; font-size: 14px; }
+.loginCard label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; }
+.loginCard input { padding: 11px 12px; border: 1px solid #c9d3e3; border-radius: 8px; font-size: 15px; }
+.loginCard button { background: #2465c7; color: #fff; border: 0; border-radius: 8px; padding: 12px; font-size: 15px; cursor: pointer; font-weight: 600; }
+.loginCard button:disabled { opacity: .6; cursor: default; }
+
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.tab { border: 1px solid #c9d3e3; background: #fff; color: #142c4d; border-radius: 999px; padding: 8px 18px; cursor: pointer; font-size: 14px; }
+.tabActive { background: #2465c7; border-color: #2465c7; color: #fff; }
+.mapPanel { display: flex; flex-direction: column; gap: 10px; }
+.mapBox { height: 560px; border-radius: 12px; overflow: hidden; border: 1px solid #c9d3e3; background: #e9eef6; z-index: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: #142c4d; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 2px solid #fff; box-shadow: 0 0 0 1px #c9d3e3; }
+.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; vertical-align: -1px; }
+.lineForm { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end; }
+.lineForm label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; }
+.lineForm input { padding: 9px 10px; border: 1px solid #c9d3e3; border-radius: 8px; font-size: 14px; }
+.primary { background: #2465c7; color: #fff; border: 0; border-radius: 8px; padding: 10px 16px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.primary:disabled { opacity: .6; cursor: default; }
+
+@media (max-width: 800px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .charts, .detailGrid { grid-template-columns: 1fr; }
+}

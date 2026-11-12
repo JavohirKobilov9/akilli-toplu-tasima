@@ -18,12 +18,12 @@ use App\Http\Controllers\Api\NotificationController;
 Route::post('/register', [
     AuthController::class,
     'register'
-]);
+])->middleware('throttle:10,1');
 
 Route::post('/login', [
     AuthController::class,
     'login'
-]);
+])->middleware('throttle:10,1');
 
 Route::post(
     '/forgot-password/request-code',
@@ -31,7 +31,7 @@ Route::post(
         AuthController::class,
         'requestResetCode'
     ]
-);
+)->middleware('throttle:5,1');
 
 Route::post(
     '/forgot-password/reset',
@@ -39,7 +39,7 @@ Route::post(
         AuthController::class,
         'resetPassword'
     ]
-);
+)->middleware('throttle:10,1');
 
 // ----------------------------------------------------
 // MİSAFİR - Yalnızca e-posta doğrulamasıyla şikayet
@@ -78,6 +78,11 @@ Route::get('/complaints/{complaint}', [
 Route::get('/lines', [
     LineController::class,
     'index'
+]);
+
+Route::get('/stops', [
+    LineController::class,
+    'allStops'
 ]);
 
 Route::get('/lines/{line}/stops', [

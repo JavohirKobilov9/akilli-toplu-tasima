@@ -8,6 +8,7 @@ import '../services/push_notification_service.dart';
 import 'harita.dart';
 import 'sefer_saatleri.dart';
 import 'topluluk_sikayetleri.dart';
+import 'yakin_duraklar.dart';
 
 class AnaSayfa extends StatefulWidget {
   const AnaSayfa({super.key});
@@ -249,6 +250,25 @@ class _AnaSayfaState extends State<AnaSayfa> with WidgetsBindingObserver {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const HaritaScreen()),
+                );
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            // YAKIN DURAKLAR
+            _MenuCard(
+              icon: Icons.near_me_outlined,
+              title: 'Yakın Duraklar',
+              description:
+                  'Bulunduğun konuma en yakın '
+                  'durakları ve hatları gör.',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const YakinDuraklarSayfasi(),
+                  ),
                 );
               },
             ),

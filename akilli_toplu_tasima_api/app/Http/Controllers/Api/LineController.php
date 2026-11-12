@@ -103,6 +103,22 @@ public function adminUpdate(Request $request, Line $line)
         ]);
     }
 
+    // Konumu olan tüm aktif durakları, geçen hat kodlarıyla getir (yakın durak özelliği için).
+    public function allStops()
+    {
+        $stops = \App\Models\Stop::where('is_active', true)
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->with(['lines' => fn ($q) => $q->select('lines.id', 'lines.code', 'lines.name')])
+            ->orderBy('name')
+            ->get(['id', 'code', 'name', 'district', 'latitude', 'longitude']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $stops,
+        ]);
+    }
+
     // Seçilen hatta ait durakları getir
     public function stops(Line $line)
     {

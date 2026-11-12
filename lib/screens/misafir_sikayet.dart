@@ -340,8 +340,9 @@ class _MisafirSikayetSayfasiState extends State<MisafirSikayetSayfasi> {
     try {
       final file = await _imagePicker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 80,
-        maxWidth: 1600,
+        imageQuality: 85,
+        maxWidth: 800,
+        maxHeight: 800,
       );
       if (file == null || !mounted) return;
       setState(() {
