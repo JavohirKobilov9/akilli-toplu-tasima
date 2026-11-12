@@ -5,9 +5,91 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Line;
 use App\Models\LineSchedule;
+use Illuminate\Http\Request;
 
 class LineController extends Controller
 {
+    public function adminIndex()
+    {
+        return response()->json(['success' => true, 'data' => Line::orderBy('code')->get()]);
+    }
+
+    public function adminShow(Line $line)
+    {
+        return response()->json(['success' => true, 'data' => $line]);
+    }
+
+    
+
+public function adminUpdate(Request $request, Line $line)
+{
+    $data = $request->validate([
+        'name' => ['sometimes', 'required', 'string', 'max:255'],
+        'transport_type' => ['sometimes', 'required', 'string', 'max:255'],
+        'start_point' => ['sometimes', 'nullable', 'string', 'max:255'],
+        'end_point' => ['sometimes', 'nullable', 'string', 'max:255'],
+
+        // GeoJSON guzergah koordinatlari
+        'route_geometry' => ['sometimes', 'required', 'array'],
+        'route_geometry.type' => [
+            'required_with:route_geometry',
+            'in:LineString',
+        ],
+        'route_geometry.coordinates' => [
+            'required_with:route_geometry',
+            'array',
+            'min:2',
+            'max:5000',
+        ],
+        'route_geometry.coordinates.*' => [
+            'array',
+            'size:2',
+        ],
+        'route_geometry.coordinates.*.0' => [
+            'required',
+            'numeric',
+            'between:-180,180',
+        ],
+        'route_geometry.coordinates.*.1' => [
+            'required',
+            'numeric',
+            'between:-90,90',
+        ],
+
+        // Korunan alanlar
+        'code' => ['prohibited'],
+        'is_active' => ['prohibited'],
+        'geometry' => ['prohibited'],
+        'stops' => ['prohibited'],
+    ]);
+
+    $guzergah = $data['route_geometry'] ?? null;
+    unset($data['route_geometry']);
+
+    $line->fill($data);
+
+    if ($guzergah !== null) {
+        $line->route_geometry = [
+            'type' => 'LineString',
+            'coordinates' => array_map(
+                fn ($nokta) => [
+                    (float) $nokta[0],
+                    (float) $nokta[1],
+                ],
+                $guzergah['coordinates']
+            ),
+        ];
+    }
+
+    $line->save();
+
+    return response()->json([
+        'success' => true,
+        'data' => $line->fresh(),
+    ]);
+}
+
+
     // Aktif hatları getir
     public function index()
     {

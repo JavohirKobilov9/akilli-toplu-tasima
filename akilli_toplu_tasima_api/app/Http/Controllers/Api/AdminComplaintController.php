@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Complaint;
+use App\Models\Line;
 use Illuminate\Http\Request;
 
 class AdminComplaintController extends Controller
@@ -46,13 +47,19 @@ class AdminComplaintController extends Controller
                 'latitude' => $complaint->latitude,
                 'longitude' => $complaint->longitude,
 
-                'line' => $complaint->line
-                    ? [
-                        'id' => $complaint->line->id,
-                        'code' => $complaint->line->code,
-                        'name' => $complaint->line->name,
-                    ]
-                    : null,
+                
+'line' => $complaint->line_id
+    ? (
+        ($line = Line::find($complaint->line_id))
+            ? [
+                'id' => $line->id,
+                'code' => $line->code,
+                'name' => $line->name,
+            ]
+            : null
+    )
+    : null,
+
 
                 'stop' => $complaint->stop
                     ? [

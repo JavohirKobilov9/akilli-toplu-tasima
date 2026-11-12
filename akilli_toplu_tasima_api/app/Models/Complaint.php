@@ -18,7 +18,14 @@ class Complaint extends Model
         'line',
         'stop',
         'status',
+        'is_synthetic',
     ];
+
+
+    protected $casts = [
+        'is_synthetic' => 'boolean',
+    ];
+
 
     // Misafir iletişim bilgileri JSON çıktısında gizlenir.
     protected $hidden = [

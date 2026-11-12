@@ -68,6 +68,13 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/routes/brt25.json
+    - assets/routes/brt24.json
+    - assets/routes/brt23.json
+    - assets/routes/brt22.json
+    - assets/routes/brt21.json
+    - assets/routes/brt20.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:

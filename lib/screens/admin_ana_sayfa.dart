@@ -8,6 +8,9 @@ import '../services/api_service.dart';
 import '../widgets/complaint_media.dart';
 import 'sikayet_konum.dart';
 import 'yardimci_yoneticiler.dart';
+import 'harita.dart';
+import 'hat_yonetimi.dart';
+import 'super_admin_analiz.dart';
 
 class AdminAnaSayfa extends StatefulWidget {
   const AdminAnaSayfa({super.key});
@@ -83,9 +86,7 @@ class _AdminAnaSayfaState extends State<AdminAnaSayfa> {
   Future<void> _sikayetDetayiniAc(Sikayet sikayet) async {
     final guncellendi = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
-        builder: (context) => _AdminSikayetDetaySayfasi(
-          sikayet: sikayet,
-        ),
+        builder: (context) => _AdminSikayetDetaySayfasi(sikayet: sikayet),
       ),
     );
 
@@ -113,21 +114,14 @@ class _AdminAnaSayfaState extends State<AdminAnaSayfa> {
 
     if (!mounted) return;
 
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/giris',
-      (route) => false,
-    );
+    Navigator.pushNamedAndRemoveUntil(context, '/giris', (route) => false);
   }
 
   Widget _sayac(String etiket, int sayi) {
     return Expanded(
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            vertical: 16,
-            horizontal: 8,
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
           child: Column(
             children: [
               Text(
@@ -189,10 +183,7 @@ class _AdminAnaSayfaState extends State<AdminAnaSayfa> {
                   children: [
                     const Icon(Icons.error_outline, size: 42),
                     const SizedBox(height: 12),
-                    Text(
-                      '${snapshot.error}',
-                      textAlign: TextAlign.center,
-                    ),
+                    Text('${snapshot.error}', textAlign: TextAlign.center),
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: _yenile,
@@ -221,8 +212,8 @@ class _AdminAnaSayfaState extends State<AdminAnaSayfa> {
           final filtrelenmisSikayetler = _secilenFiltre == 'Tümü'
               ? sikayetler
               : sikayetler
-                  .where((sikayet) => sikayet.durum == _secilenFiltre)
-                  .toList();
+                    .where((sikayet) => sikayet.durum == _secilenFiltre)
+                    .toList();
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -236,26 +227,70 @@ class _AdminAnaSayfaState extends State<AdminAnaSayfa> {
                 ListTile(
                   leading: const Icon(Icons.admin_panel_settings),
                   title: Text(
-                    _rol == 'super_admin'
-                        ? 'Süper Yönetici'
-                        : 'Yönetici',
+                    _rol == 'super_admin' ? 'Süper Yönetici' : 'Yönetici',
                   ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (_kullaniciAdi.trim().isNotEmpty)
-                        Text(_kullaniciAdi),
+                      if (_kullaniciAdi.trim().isNotEmpty) Text(_kullaniciAdi),
                       const Text('Bartın toplu taşıma şikayetleri'),
                     ],
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.map_outlined, color: Colors.blue),
+                    title: const Text('Şikayet Haritası'),
+                    subtitle: const Text(
+                      'Hat güzergâhlarını ve şikayet konumlarını görüntüle',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (context) => const HaritaScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.bar_chart, color: Colors.blue),
+                    title: const Text('Şikayet Analizleri'),
+                    subtitle: const Text(
+                      'Hat, kategori ve aylık şikayet istatistikleri',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (context) => const SuperAdminAnalizSayfasi(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.route_outlined),
+                    title: const Text('Hat Yönetimi'),
+                    subtitle: const Text('Hat bilgilerini görüntüle ve düzenle'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(builder: (_) => const HatYonetimiSayfasi()),
+                    ),
                   ),
                 ),
                 if (_rol == 'super_admin') ...[
                   const SizedBox(height: 12),
                   Card(
                     child: ListTile(
-                      leading: const Icon(
-                        Icons.supervisor_account_outlined,
-                      ),
+                      leading: const Icon(Icons.supervisor_account_outlined),
                       title: const Text('Yardımcı Yöneticiler'),
                       subtitle: const Text(
                         'Admin hesaplarını ve durumlarını görüntüle',
@@ -347,7 +382,6 @@ class _AdminAnaSayfaState extends State<AdminAnaSayfa> {
   }
 }
 
-
 // Şikayet detay ve durum düzenleme ekranı.
 // Ayrı bir route veya başka dosya değiştirmek gerekmez.
 class _AdminSikayetDetaySayfasi extends StatefulWidget {
@@ -360,14 +394,9 @@ class _AdminSikayetDetaySayfasi extends StatefulWidget {
       _AdminSikayetDetaySayfasiState();
 }
 
-class _AdminSikayetDetaySayfasiState
-    extends State<_AdminSikayetDetaySayfasi> {
+class _AdminSikayetDetaySayfasiState extends State<_AdminSikayetDetaySayfasi> {
   final ApiService _apiService = ApiService();
-  static const List<String> _durumlar = [
-    'Beklemede',
-    'İnceleniyor',
-    'Çözüldü',
-  ];
+  static const List<String> _durumlar = ['Beklemede', 'İnceleniyor', 'Çözüldü'];
 
   late String _secilenDurum;
   bool _kaydediliyor = false;
@@ -447,7 +476,9 @@ class _AdminSikayetDetaySayfasiState
         throw Exception('Oturum sona ermiş. Yeniden giriş yapın.');
       }
       if (response.statusCode == 403) {
-        throw Exception('Şikayet durumunu değiştirmek için yönetici yetkisi gerekir.');
+        throw Exception(
+          'Şikayet durumunu değiştirmek için yönetici yetkisi gerekir.',
+        );
       }
 
       throw Exception(
@@ -474,10 +505,7 @@ class _AdminSikayetDetaySayfasiState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            baslik,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
+          Text(baslik, style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
           Text(deger.isEmpty ? '-' : deger),
         ],
@@ -512,25 +540,21 @@ class _AdminSikayetDetaySayfasiState
                       _bilgiSatiri('Kategori', sikayet.kategori),
                       _bilgiSatiri('Hat', sikayet.hat),
                       _bilgiSatiri('Durak', sikayet.durak),
-                      
-_bilgiSatiri(
-  'Şikayet Sahibi',
-  sikayet.kullaniciAdi,
-),
-_bilgiSatiri(
-  'Kullanıcı Türü',
-  sikayet.misafirMi ? 'Misafir Kullanıcı' : 'Kayıtlı Kullanıcı',
-),
-if (sikayet.kullaniciEmail != null)
-  _bilgiSatiri(
-    'E-posta',
-    sikayet.kullaniciEmail!,
-  ),
-if (sikayet.kullaniciTelefon != null)
-  _bilgiSatiri(
-    'Telefon Numarası',
-    sikayet.kullaniciTelefon!,
-  ),
+
+                      _bilgiSatiri('Şikayet Sahibi', sikayet.kullaniciAdi),
+                      _bilgiSatiri(
+                        'Kullanıcı Türü',
+                        sikayet.misafirMi
+                            ? 'Misafir Kullanıcı'
+                            : 'Kayıtlı Kullanıcı',
+                      ),
+                      if (sikayet.kullaniciEmail != null)
+                        _bilgiSatiri('E-posta', sikayet.kullaniciEmail!),
+                      if (sikayet.kullaniciTelefon != null)
+                        _bilgiSatiri(
+                          'Telefon Numarası',
+                          sikayet.kullaniciTelefon!,
+                        ),
 
                       _bilgiSatiri('Tarih', _tarihMetni(sikayet.tarih)),
                       _bilgiSatiri('Mevcut durum', sikayet.durum),
@@ -555,9 +579,15 @@ if (sikayet.kullaniciTelefon != null)
                       ComplaintMedia(complaint: sikayet),
                       if (sikayet.latitude != null && sikayet.longitude != null)
                         OutlinedButton.icon(
-                          onPressed: () => Navigator.push(context, MaterialPageRoute<void>(
-                            builder: (_) => SikayetKonumSayfasi(latitude: sikayet.latitude!, longitude: sikayet.longitude!),
-                          )),
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute<void>(
+                              builder: (_) => SikayetKonumSayfasi(
+                                latitude: sikayet.latitude!,
+                                longitude: sikayet.longitude!,
+                              ),
+                            ),
+                          ),
                           icon: const Icon(Icons.location_on_outlined),
                           label: const Text('Şikayet Konumunu Göster'),
                         ),
@@ -631,3 +661,4 @@ if (sikayet.kullaniciTelefon != null)
     );
   }
 }
+

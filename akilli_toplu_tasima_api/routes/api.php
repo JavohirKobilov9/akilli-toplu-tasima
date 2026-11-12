@@ -265,3 +265,11 @@ Route::patch('/complaints/{complaint}/status', [
     'auth:sanctum',
     \App\Http\Middleware\EnsureAdmin::class,
 ]);
+
+// Hat yönetimi: mevcut genel hat endpointleri korunur.
+Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureAdmin::class])
+    ->prefix('admin')->group(function () {
+        Route::get('/lines', [LineController::class, 'adminIndex']);
+        Route::get('/lines/{line}', [LineController::class, 'adminShow']);
+        Route::put('/lines/{line}', [LineController::class, 'adminUpdate']);
+    });

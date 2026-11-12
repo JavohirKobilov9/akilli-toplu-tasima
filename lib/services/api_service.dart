@@ -53,7 +53,10 @@ class ApiService {
     if (response.statusCode != 200) throw Exception('Telefon bildirim kaydı yapılamadı.');
   }
 
-  final String baseUrl = 'http://10.0.2.2:8000/api';
+  final String baseUrl = const String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'http://10.0.2.2:8000/api',
+);
 
   Future<Map<String, dynamic>> uploadProfilePhoto(
 
@@ -717,7 +720,7 @@ Future<List<Sikayet>> getAdminSikayetler() async {
   if (token == null || token.isEmpty) {
     throw Exception(
       'Oturum bulunamadı. Lütfen tekrar giriş yapın.',
-    );
+    );  
   }
 
   final response = await http.get(

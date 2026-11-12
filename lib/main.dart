@@ -71,7 +71,9 @@ class _OturumKontrolSayfasiState extends State<OturumKontrolSayfasi> {
   Future<String?> _rolGetir() async {
     try {
       // Rolü telefondan değil, Laravel'in /me API'sinden öğreniyoruz.
-      final kullanici = await _apiService.getMe();
+    final kullanici = await _apiService.getMe().timeout(
+  const Duration(seconds: 15),
+);
       return kullanici['role']?.toString() ?? 'user';
     } catch (_) {
       return null;

@@ -15,17 +15,24 @@ class Line extends Model
         'is_active',
     ];
 
+    protected $casts = [
+        'route_geometry' => 'array',
+    ];
+
     public function stops()
     {
-        return $this->belongsToMany(Stop::class, 'line_stop')
+        return $this->belongsToMany(
+            Stop::class,
+            'line_stop'
+        )
             ->withPivot('stop_order')
             ->withTimestamps()
             ->orderBy('line_stop.stop_order');
     }
-    
+
     public function schedules()
-{
-    return $this->hasMany(LineSchedule::class)
-        ->orderBy('departure_time');
-}
+    {
+        return $this->hasMany(LineSchedule::class)
+            ->orderBy('departure_time');
+    }
 }

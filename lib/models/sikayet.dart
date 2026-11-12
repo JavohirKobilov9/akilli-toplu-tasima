@@ -14,6 +14,8 @@ class Sikayet {
   final String? kullaniciEmail;
   final String? kullaniciTelefon;
   final bool misafirMi;
+  final bool kayitliMi;
+  final bool sentetikMi;
 
   final double? latitude;
   final double? longitude;
@@ -66,6 +68,8 @@ class Sikayet {
     this.kullaniciEmail,
     this.kullaniciTelefon,
     this.misafirMi = false,
+    this.kayitliMi = false,
+    this.sentetikMi = false,
     this.latitude,
     this.longitude,
     this.mediaPath,
@@ -126,6 +130,8 @@ class Sikayet {
       kullaniciEmail: nullableText(json['user_email']),
       kullaniciTelefon: nullableText(json['user_phone']),
       misafirMi: json['is_guest'] == true,
+      kayitliMi: json['user_id'] != null,
+      sentetikMi: json['is_synthetic'] == true,
       mediaPath: nullableText(json['media_path']),
       mediaType: nullableText(json['media_type']),
       latitude: json['latitude'] != null
@@ -148,6 +154,7 @@ class Sikayet {
       'status': durum,
       'created_at': tarih.toIso8601String(),
       'user_display_name': kullaniciAdi,
+      'is_synthetic': sentetikMi,
       'latitude': latitude,
       'longitude': longitude,
       'media_path': mediaPath,
